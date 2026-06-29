@@ -15,20 +15,16 @@ a **print-ready STL**.
 
 ---
 
-## Two relief modes
+## Relief direction
 
-| Mode | Roller surface | Dough imprint | Files | How |
-|---|---|---|---|---|
-| **v1** (default) | features stand **out** | **indented** (sunken) | `roller_*.stl` | normal run |
-| **v2** (`--engrave`) | features carved **in** | **raised** (embossed) | `roller_*_v2.stl` | add `--engrave` |
+This is the **original (v1)** roller: features stand **out** of the barrel and
+press **down** into the dough, leaving an **indented** imprint. ✅ This is the
+chosen, print-verified design.
 
-Same names, fonts, themes, and assets — v2 just inverts the relief so the design
-pops *up* out of the dough instead of being pressed *in*. Both export as a single
-watertight, upright, support-free solid. See [`SKILL_v2.md`](SKILL_v2.md).
-
-```bash
-python playdoh_roller.py --name "Imogen" --theme shapes --engrave --preview --stl
-```
+> An alternative **v2** (engraved roller → *raised* dough imprint, via
+> `--engrave`) was tried too, but after printing both, the original was
+> preferred. The v2 files are kept under [`archive/v2/`](archive/v2) for
+> reference. The `--engrave` flag still works if you ever want to regenerate it.
 
 ---
 
