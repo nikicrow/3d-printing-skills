@@ -307,11 +307,16 @@ def make_preview(name, theme, args):
     hm, font_name, (W, H), n_deco = build_heightmap(
         name, theme, args.radius, args.length, args.ppm)
 
-    # Colour the flattened dough: cream base, darker where features imprint.
+    # Colour the flattened dough. v1 (raised roller): the design presses DOWN
+    # into the dough -> shown dark/indented on cream. v2 (--engrave, recessed
+    # roller): the design stands UP out of the dough -> shown light/raised on a
+    # darker pressed background (the colour mapping is simply inverted).
     arr = np.asarray(hm, dtype=np.float32) / 255.0
+    base_col, feat_col = (IMPRINT, CREAM) if args.engrave else (CREAM, IMPRINT)
     rgb = np.empty((H, W, 3), dtype=np.uint8)
     for c in range(3):
-        rgb[..., c] = (CREAM[c] * (1 - arr) + IMPRINT[c] * arr).astype(np.uint8)
+        rgb[..., c] = (base_col[c] * (1 - arr) + feat_col[c] * arr).astype(
+            np.uint8)
 
     circ_mm = 2 * math.pi * args.radius
     aspect = W / H
@@ -321,15 +326,18 @@ def make_preview(name, theme, args):
     ax.imshow(rgb, extent=[0, circ_mm, 0, args.length], origin="lower")
     ax.set_xlabel("around circumference (mm)")
     ax.set_ylabel("along roller length (mm)")
-    ax.set_title(f"ROLLER PREVIEW — {name} / {theme}",
+    tag = "  (v2 · raised imprint)" if args.engrave else ""
+    ax.set_title(f"ROLLER PREVIEW — {name} / {theme}{tag}",
                  fontsize=15, fontweight="bold", pad=12)
-    fig.text(0.5, 0.015,
-             "This is what the Play-Doh imprint will look like (shown flat)",
-             ha="center", fontsize=10, style="italic")
+    caption = ("This is the RAISED Play-Doh imprint from the engraved roller "
+               "(shown flat)" if args.engrave else
+               "This is what the Play-Doh imprint will look like (shown flat)")
+    fig.text(0.5, 0.015, caption, ha="center", fontsize=10, style="italic")
     fig.subplots_adjust(top=0.90, bottom=0.12)
 
+    suffix = "_v2" if args.engrave else ""
     safe_name = name.lower().replace(" ", "_")
-    out = os.path.join(OUT_DIR, f"preview_{safe_name}_{theme}.png")
+    out = os.path.join(OUT_DIR, f"preview_{safe_name}_{theme}{suffix}.png")
     fig.savefig(out, facecolor="white")
     plt.close(fig)
     print(f"[preview] font={font_name}  surface={W}x{H}px  "
@@ -365,21 +373,32 @@ def make_stl(name, theme, args):
     sx = (np.linspace(0, W - 1, n_theta)).astype(int)   # circumference -> x
     sy = (np.linspace(0, H - 1, n_z)).astype(int)       # length -> y
     samp = height[np.ix_(sy, sx)]                        # shape (n_z, n_theta)
-    radii = R + E * (samp > 0.5)                         # (n_z, n_theta)
+    # v1: features bump OUTWARD (R+E). v2 (--engrave): features are recessed
+    # INWARD (R-E) so the dough comes out raised instead of indented.
+    sign = -1.0 if args.engrave else 1.0
+    radii = R + sign * E * (samp > 0.5)                  # (n_z, n_theta)
 
-    # Build vertices. Axis = X. Cross-section in (Y, Z) plane.
+    # Build vertices. Axis = X, cross-section in (Y, Z). We add a centre point at
+    # each end so the textured surface CLOSES INTO A SINGLE WATERTIGHT SOLID.
+    # (The earlier design left this as an open tube sitting on a separate core,
+    # which slicers saw as zero-thickness "floating" features that didn't print.
+    # Capping the ends makes every bump a real solid protrusion of one mesh.)
     ct = np.cos(thetas)
     st = np.sin(thetas)
-    verts = np.empty((n_z * n_theta, 3), dtype=np.float64)
+    verts = np.empty((n_z * n_theta + 2, 3), dtype=np.float64)
     for j in range(n_z):
         r = radii[j]
         base = j * n_theta
         verts[base:base + n_theta, 0] = zs[j]
         verts[base:base + n_theta, 1] = r * ct
         verts[base:base + n_theta, 2] = r * st
+    c0 = n_z * n_theta            # centre of the z=0 end
+    c1 = n_z * n_theta + 1        # centre of the z=L end
+    verts[c0] = [0.0, 0.0, 0.0]
+    verts[c1] = [L, 0.0, 0.0]
 
-    # Side faces (quads -> 2 triangles), wrapping in theta.
     faces = []
+    # Side faces (quads -> 2 triangles), wrapping in theta.
     for j in range(n_z - 1):
         for i in range(n_theta):
             i2 = (i + 1) % n_theta
@@ -389,19 +408,16 @@ def make_stl(name, theme, args):
             dd = (j + 1) * n_theta + i2
             faces.append([a, b, dd])
             faces.append([a, dd, c])
+    # End caps: fan each end ring to its centre point -> closes the solid.
+    top = (n_z - 1) * n_theta
+    for i in range(n_theta):
+        i2 = (i + 1) % n_theta
+        faces.append([c0, i, i2])                   # z=0 end
+        faces.append([c1, top + i2, top + i])       # z=L end
 
-    body = trimesh.Trimesh(vertices=verts, faces=np.array(faces),
-                           process=False)
-
-    # Body core: a plain solid cylinder at radius R. The textured shell above is
-    # an open tube; the core fills it (and caps both ends) so the union is a
-    # watertight solid the slicer can handle.
-    core = trimesh.creation.cylinder(radius=R, height=L, sections=128)
-    core.apply_transform(trimesh.transformations.rotation_matrix(
-        math.pi / 2, [0, 1, 0]))                        # axis -> X
-    core.apply_translation([L / 2, 0, 0])
-
-    parts = [core, body]
+    body = trimesh.Trimesh(vertices=verts, faces=np.array(faces), process=True)
+    body.fix_normals()                              # consistent outward normals
+    parts = [body]
 
     # Optional grip handles beyond each end (off by default — kept simple).
     if args.handles:
@@ -416,7 +432,7 @@ def make_stl(name, theme, args):
         h2.apply_translation([L + hl / 2 - 0.5, 0, 0])
         parts += [h1, h2]
 
-    combined = trimesh.util.concatenate(parts)
+    combined = trimesh.util.concatenate(parts) if len(parts) > 1 else body
 
     # Stand the roller UPRIGHT on its end (axis -> Z) for easy, support-free
     # printing: every layer is a ring with the relief on its outer wall, so
@@ -428,11 +444,13 @@ def make_stl(name, theme, args):
                                 -(b[0, 1] + b[1, 1]) / 2,     # centre Y
                                 -b[0, 2]])                    # sit on z=0
 
+    suffix = "_v2" if args.engrave else ""
     safe_name = name.lower().replace(" ", "_")
-    out = os.path.join(OUT_DIR, f"roller_{safe_name}_{theme}.stl")
+    out = os.path.join(OUT_DIR, f"roller_{safe_name}_{theme}{suffix}.stl")
     combined.export(out)
+    wt = "watertight" if combined.is_watertight else "NOT watertight"
     print(f"[stl] font={font_name}  decorations={n_deco}  "
-          f"verts={len(combined.vertices)}  faces={len(combined.faces)}")
+          f"verts={len(combined.vertices)}  faces={len(combined.faces)}  {wt}")
     print(f"[stl] saved -> {out}")
     return out
 
@@ -451,6 +469,10 @@ def main():
     p.add_argument("--handle-length", type=float, default=HANDLE_LENGTH_MM)
     p.add_argument("--handle-radius", type=float, default=HANDLE_RADIUS_MM)
     p.add_argument("--emboss", type=float, default=EMBOSS_HEIGHT_MM)
+    p.add_argument("--engrave", action="store_true",
+                   help="v2: recess the name/decorations INTO the roller so the "
+                        "dough imprint comes out RAISED. Outputs get a _v2 "
+                        "suffix.")
     p.add_argument("--ppm", type=int, default=RESOLUTION_PPM)
     p.add_argument("--preview", action="store_true", help="write preview PNG")
     p.add_argument("--stl", action="store_true", help="write printable STL")

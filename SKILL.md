@@ -5,6 +5,11 @@ description: Generate a parametric, personalized Play-Doh roller (preview PNG an
 
 # Play-Doh Roller Generator
 
+> **Status: working & print-verified.** The Ember / bees-and-flowers roller has
+> been printed on a Bambu Lab printer (solid, upright, no handles) and came out
+> great — crisp embossed name and decorations. The full pipeline (SVG icons →
+> heightmap → upright STL → print) is confirmed end-to-end.
+
 Generates a custom Play-Doh / clay texture roller: a cylinder with a kid's name
 embossed lengthways along the barrel and a themed pattern of decorations (bees,
 dinosaurs, etc.) filling the rest of the surface. Outputs either a flat PNG
