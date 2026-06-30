@@ -14,8 +14,9 @@ archived here so the choice is clear when revisiting the repo.
 
 Contents:
 - `SKILL_v2.md` — the v2 skill doc
-- `printable_files/` — the v2 STLs (`roller_*_v2.stl`)
 - `previews/` — the v2 previews (`preview_*_v2.png`)
+
+(v2 STLs are git-ignored like all STLs — regenerate with `--engrave` if needed.)
 
 The code path still exists in `playdoh_roller.py` via the `--engrave` flag if you
 ever want to regenerate a v2 roller, but the default (no flag) produces the

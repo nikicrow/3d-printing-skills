@@ -116,6 +116,7 @@ THEMES = {
                          ("heart.svg", "evenodd")],
     "cats":             [("cat.svg", "evenodd"), ("paw.svg", "evenodd")],
     "fruits":           [("banana.svg", "union"), ("apple.svg", "union")],
+    "trucks":           [("truck.svg", "union"), ("car.svg", "union")],
 }
 
 
@@ -375,41 +376,37 @@ def _top_stamp_geometry(theme, R, relief, ppm, n_theta, thetas, start_index,
     ct = np.cos(thetas)
     st = np.sin(thetas)
 
-    def icon_x(r, i):
-        y = r * ct[i]
-        z = r * st[i]
-        u = int(round((0.5 + 0.5 * (y / R)) * (wimg - 1)))
-        v = int(round((0.5 + 0.5 * (z / R)) * (himg - 1)))
-        if 0 <= u < wimg and 0 <= v < himg and M[v, u]:
-            return -relief                  # raised outward from the x=0 end
-        return 0.0
-
-    new_verts = []
-    for k in range(1, K):                   # interior rings, radius R -> 0
-        r = R * (K - k) / K
-        for i in range(n_theta):
-            new_verts.append([icon_x(r, i), r * ct[i], r * st[i]])
+    # Interior rings k=1..K-1 (radius R -> 0), vectorised.
+    ks = np.arange(1, K)
+    r_k = (R * (K - ks) / K)[:, None]       # (K-1, 1)
+    Y = r_k * ct[None, :]                    # (K-1, n_theta)
+    Z = r_k * st[None, :]
+    U = np.clip(np.round((0.5 + 0.5 * (Y / R)) * (wimg - 1)).astype(int),
+                0, wimg - 1)
+    V = np.clip(np.round((0.5 + 0.5 * (Z / R)) * (himg - 1)).astype(int),
+                0, himg - 1)
+    Xr = np.where(M[V, U], -relief, 0.0)     # raised outward from the x=0 end
+    verts = np.stack([Xr.ravel(), Y.ravel(), Z.ravel()], axis=1)
     center_on = M[(himg - 1) // 2, (wimg - 1) // 2]
-    new_verts.append([-relief if center_on else 0.0, 0.0, 0.0])
+    verts = np.vstack([verts, [[-relief if center_on else 0.0, 0.0, 0.0]]])
     center_idx = start_index + (K - 1) * n_theta
 
-    def ridx(k, i):
-        if k == 0:
-            return i                         # shares the body's ring 0
-        return start_index + (k - 1) * n_theta + i
+    def ring_base(k):
+        return 0 if k == 0 else start_index + (k - 1) * n_theta
 
-    faces = []
-    for k in range(K - 1):
-        for i in range(n_theta):
-            i2 = (i + 1) % n_theta
-            a, b = ridx(k, i), ridx(k, i2)
-            c, d = ridx(k + 1, i), ridx(k + 1, i2)
-            faces.append([a, d, b])          # winding fixed later by fix_normals
-            faces.append([a, c, d])
-    for i in range(n_theta):
-        i2 = (i + 1) % n_theta
-        faces.append([ridx(K - 1, i), center_idx, ridx(K - 1, i2)])
-    return np.array(new_verts, dtype=np.float64), faces
+    I = np.arange(n_theta)
+    I2 = (I + 1) % n_theta
+    parts = []
+    for k in range(K - 1):                   # ~K iters of vectorised stacks
+        b0, b1 = ring_base(k), ring_base(k + 1)
+        a, b = b0 + I, b0 + I2
+        c, d = b1 + I, b1 + I2
+        parts.append(np.stack([a, d, b], axis=1))   # winding fixed by normals
+        parts.append(np.stack([a, c, d], axis=1))
+    bK = ring_base(K - 1)
+    parts.append(np.stack([bK + I, np.full(n_theta, center_idx), bK + I2],
+                          axis=1))
+    return verts, np.concatenate(parts)
 
 
 # ===========================================================================
@@ -446,56 +443,55 @@ def make_stl(name, theme, args):
     if args.top_stamp:
         radii[0, :] = R   # clean circular ring on the stamped (x=0) end
 
-    # Build vertices. Axis = X, cross-section in (Y, Z). We add a centre point at
-    # each end so the textured surface CLOSES INTO A SINGLE WATERTIGHT SOLID.
-    # (The earlier design left this as an open tube sitting on a separate core,
-    # which slicers saw as zero-thickness "floating" features that didn't print.
-    # Capping the ends makes every bump a real solid protrusion of one mesh.)
+    # Build vertices (vectorised). Axis = X, cross-section in (Y, Z). A centre
+    # point is added at each end so the textured surface CLOSES INTO A SINGLE
+    # WATERTIGHT SOLID. (The earlier design left this as an open tube on a
+    # separate core, which slicers saw as zero-thickness "floating" features
+    # that didn't print. Capping the ends makes every bump a real protrusion.)
     ct = np.cos(thetas)
     st = np.sin(thetas)
-    verts = np.empty((n_z * n_theta + 2, 3), dtype=np.float64)
-    for j in range(n_z):
-        r = radii[j]
-        base = j * n_theta
-        verts[base:base + n_theta, 0] = zs[j]
-        verts[base:base + n_theta, 1] = r * ct
-        verts[base:base + n_theta, 2] = r * st
-    c0 = n_z * n_theta            # centre of the z=0 end
-    c1 = n_z * n_theta + 1        # centre of the z=L end
-    verts[c0] = [0.0, 0.0, 0.0]
-    verts[c1] = [L, 0.0, 0.0]
+    grid = np.empty((n_z * n_theta, 3), dtype=np.float64)
+    grid[:, 0] = np.repeat(zs, n_theta)
+    grid[:, 1] = (radii * ct[None, :]).ravel()
+    grid[:, 2] = (radii * st[None, :]).ravel()
+    c0 = n_z * n_theta            # centre of the x=0 end
+    c1 = n_z * n_theta + 1        # centre of the x=L end
+    verts = np.vstack([grid, [[0.0, 0.0, 0.0]], [[L, 0.0, 0.0]]])
 
-    faces = []
-    # Side faces (quads -> 2 triangles), wrapping in theta.
-    for j in range(n_z - 1):
-        for i in range(n_theta):
-            i2 = (i + 1) % n_theta
-            a = j * n_theta + i
-            b = j * n_theta + i2
-            c = (j + 1) * n_theta + i
-            dd = (j + 1) * n_theta + i2
-            faces.append([a, b, dd])
-            faces.append([a, dd, c])
+    # Side faces (quads -> 2 triangles), wrapping in theta (vectorised).
+    J, I = np.meshgrid(np.arange(n_z - 1), np.arange(n_theta), indexing="ij")
+    I2 = (I + 1) % n_theta
+    a = J * n_theta + I
+    b = J * n_theta + I2
+    c = (J + 1) * n_theta + I
+    dd = (J + 1) * n_theta + I2
+    side = np.concatenate([
+        np.stack([a, b, dd], axis=-1).reshape(-1, 3),
+        np.stack([a, dd, c], axis=-1).reshape(-1, 3)])
+
     # Bed end (x=L) -> flat fan to its centre point.
+    Iv = np.arange(n_theta)
+    Iv2 = (Iv + 1) % n_theta
     top = (n_z - 1) * n_theta
-    for i in range(n_theta):
-        i2 = (i + 1) % n_theta
-        faces.append([c1, top + i2, top + i])
+    bed = np.stack([np.full(n_theta, c1), top + Iv2, top + Iv], axis=1)
 
+    face_parts = [side, bed]
     # Stamp end (x=0): either a raised icon stamp disk, or a plain flat fan.
     if args.top_stamp:
         sv, sf = _top_stamp_geometry(theme, R, args.stamp_relief, args.ppm,
                                      n_theta, thetas, start_index=c1 + 1,
                                      stamp_icon=args.stamp_icon)
         verts = np.vstack([verts, sv])
-        faces.extend(sf)
+        face_parts.append(sf)
     else:
-        for i in range(n_theta):
-            i2 = (i + 1) % n_theta
-            faces.append([c0, i, i2])
+        face_parts.append(np.stack([np.full(n_theta, c0), Iv, Iv2], axis=1))
 
-    body = trimesh.Trimesh(vertices=verts, faces=np.array(faces), process=True)
-    body.fix_normals()                              # consistent outward normals
+    faces = np.concatenate(face_parts)
+    # Watertightness comes from topology (every edge is shared by 2 faces via
+    # shared vertex indices), so we skip trimesh's expensive normal/merge passes
+    # (fix_normals builds a face-adjacency graph over >1M faces -> minutes).
+    # Normal winding is left for the slicer to auto-repair on import.
+    body = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
     parts = [body]
 
     # Optional grip handles beyond each end (off by default — kept simple).
