@@ -2,8 +2,8 @@
 
 Make your own **personalized Play-Doh / clay texture rollers** — a cylinder with
 a kid's name embossed lengthways and a themed pattern of cute decorations
-(bees & flowers, dinosaurs, shapes, cats, fruits) wrapped around it. Roll it
-over Play-Doh and it stamps the name and pictures into the dough.
+(bees & flowers, dinosaurs, shapes, cats, fruits, trucks) wrapped around it. Roll
+it over Play-Doh and it stamps the name and pictures into the dough.
 
 One small Python script produces both a **flat PNG preview** of the imprint and
 a **print-ready STL**.
@@ -51,12 +51,16 @@ python playdoh_roller.py --name "Imogen" --theme shapes --preview --stl
 
 Outputs are named `preview_<name>_<theme>.png` and `roller_<name>_<theme>.stl`.
 
+> **Note:** the large STL files are **generated locally and not committed** to
+> this repo (they're git-ignored). The repo keeps the generator, assets, and the
+> preview PNGs; regenerate any STL on demand with the command above.
+
 ### Options
 
 | Flag | Default | Meaning |
 |---|---|---|
 | `--name` | `Ember` | Name embossed lengthways along the roller |
-| `--theme` | `bees_and_flowers` | `bees_and_flowers`, `dinosaurs`, `shapes`, `cats`, `fruits` |
+| `--theme` | `bees_and_flowers` | `bees_and_flowers`, `dinosaurs`, `shapes`, `cats`, `fruits`, `trucks` |
 | `--preview` | – | Write the flat imprint PNG |
 | `--stl` | – | Write the printable STL |
 | `--radius` | `17.5` | Barrel radius in mm (35 mm diameter) |
@@ -83,6 +87,7 @@ Outputs are named `preview_<name>_<theme>.png` and `roller_<name>_<theme>.stl`.
 | ⭐ `shapes` | circle, square, triangle, star, heart |
 | 🐱 `cats` | cat face + paw print |
 | 🍎 `fruits` | apple + banana |
+| 🚚 `trucks` | delivery truck + dump truck |
 
 Decorations are **real, open-licensed silhouette icons** (not hand-drawn),
 rasterized from the SVGs in [`assets/`](assets) — see
@@ -115,7 +120,7 @@ To use it: roll the barrel over your Play-Doh by hand. 🎉
 playdoh_roller.py     the generator (single self-contained script)
 assets/               decoration SVGs + ATTRIBUTION.md
 previews/             example imprint previews (PNG)
-printable_files/      ready-to-slice STL/3MF files
+printable_files/      where STLs are written locally (git-ignored, not committed)
 SKILL.md              full reference / how it works
 ```
 

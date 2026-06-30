@@ -1,0 +1,3 @@
+# Printable outputs are generated locally, not stored in the repo
+*.stl
+*.3mf
