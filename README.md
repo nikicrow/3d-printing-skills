@@ -87,7 +87,7 @@ Outputs are named `preview_<name>_<theme>.png` and `roller_<name>_<theme>.stl`.
 | ⭐ `shapes` | circle, square, triangle, star, heart |
 | 🐱 `cats` | cat face + paw print |
 | 🍎 `fruits` | apple + banana |
-| 🚚 `trucks` | delivery truck + dump truck |
+| 🚚 `trucks` | delivery truck + car |
 
 Decorations are **real, open-licensed silhouette icons** (not hand-drawn),
 rasterized from the SVGs in [`assets/`](assets) — see

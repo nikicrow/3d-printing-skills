@@ -1,6 +1,6 @@
 ---
 name: playdoh-roller
-description: Generate a parametric, personalized Play-Doh roller (preview PNG and printable STL) with a name embossed lengthways and a themed decoration pattern (bees & flowers, dinosaurs, shapes, cats, fruits).
+description: Generate a parametric, personalized Play-Doh roller (preview PNG and printable STL) with a name embossed lengthways and a themed decoration pattern (bees & flowers, dinosaurs, shapes, cats, fruits, trucks).
 ---
 
 # Play-Doh Roller Generator
@@ -56,7 +56,7 @@ flags is required.
 | Flag | Default | Meaning |
 |---|---|---|
 | `--name` | `Ember` | Name embossed lengthways along the roller |
-| `--theme` | `bees_and_flowers` | One of: `bees_and_flowers`, `dinosaurs`, `shapes`, `cats`, `fruits` |
+| `--theme` | `bees_and_flowers` | One of: `bees_and_flowers`, `dinosaurs`, `shapes`, `cats`, `fruits`, `trucks` |
 | `--radius` | `17.5` | Roller barrel radius in mm (35 mm diameter) |
 | `--length` | `90` | Usable imprint length in mm |
 | `--handle-length` | `22` | Length of each handle end, mm |
@@ -126,6 +126,7 @@ Decorations are SVG icons in `assets/`, rasterized to bold silhouette stamps:
 | `shapes` | circle, square, triangle, star, heart (evenodd) |
 | `cats` | cat.svg (evenodd), paw.svg (evenodd) |
 | `fruits` | banana.svg (union), apple.svg (union) |
+| `trucks` | truck.svg (union), car.svg (union) |
 
 `mode` controls fill: **evenodd** keeps interior holes (single-colour icons);
 **union** flattens all sub-paths into one solid silhouette (used for multicolour

@@ -116,7 +116,7 @@ THEMES = {
                          ("heart.svg", "evenodd")],
     "cats":             [("cat.svg", "evenodd"), ("paw.svg", "evenodd")],
     "fruits":           [("banana.svg", "union"), ("apple.svg", "union")],
-    "trucks":           [("truck.svg", "union"), ("dumptruck.svg", "evenodd")],
+    "trucks":           [("truck.svg", "union"), ("car.svg", "union")],
 }
 
 

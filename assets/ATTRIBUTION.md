@@ -20,7 +20,7 @@ as bold silhouette stamps.
 | star.svg | mdi:star | Material Design Icons | Apache 2.0 |
 | heart.svg | mdi:heart | Material Design Icons | Apache 2.0 |
 | truck.svg | noto:delivery-truck | Google Noto Emoji | Apache 2.0 / CC BY 4.0 |
-| dumptruck.svg | mdi:dump-truck | Material Design Icons | Apache 2.0 |
+| car.svg | noto:automobile | Google Noto Emoji | Apache 2.0 / CC BY 4.0 |
 
 Multicolor Noto emoji are flattened to a single silhouette (union of all
 sub-paths) at rasterization time. All other icons are single-colour and use
