@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Generated outputs (regenerate with playdoh_roller.py)
+/preview_*.png
+/roller_*.stl

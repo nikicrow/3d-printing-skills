@@ -25,10 +25,13 @@ raised outward from the barrel).
 ## Location
 
 - Script: `C:\Users\nikil\3d-printed-playdoh-roller\playdoh_roller.py`
+- Reusable helpers: `svg_processing.py` (SVG → mask, fonts) and `mesh_utils.py`
+  (heightmap → watertight cylinder mesh, end stamp, handles, upright transform).
+  These are project-agnostic and meant to be shared by future generators.
 - Decoration SVGs: `C:\Users\nikil\3d-printed-playdoh-roller\assets\`
-- Outputs (PNGs and STLs) are written next to the script in
-  `C:\Users\nikil\3d-printed-playdoh-roller\`, regardless of the working
-  directory it is invoked from.
+- Outputs (PNGs and STLs) are written to `RollerConfig.out_dir`, which defaults
+  to the script's own directory regardless of the working directory it is
+  invoked from.
 
 ## Dependencies
 
@@ -107,13 +110,14 @@ itself. The name reads lengthways (rotated 90°, read bottom-to-top). Title
 ## Design constraints (why it prints well)
 
 - Emboss height 1.8 mm (FFF best practice: raised detail >0.9 mm wide,
-  <2 mm high).
-- Minimum feature width 1.5 mm — enforced in code by the `_w()` helper, which
-  clamps every line/outline width to `MIN_FEATURE_MM * RESOLUTION_PPM` px.
-- Decorations are bold/chunky, ~10–15 mm in their longest dimension, with no
-  isolated thin islands.
-- Name letter height = 40% of the roller diameter (`TEXT_DIAMETER_FRACTION`),
-  centred on the circumference and running along the length.
+  <2 mm high) — `RollerConfig.emboss_mm`.
+- Minimum feature width 1.5 mm — `RollerConfig.min_feature_mm`; also sets the
+  keep-clear margin around the name band so decorations don't crowd the text.
+- Decorations are bold/chunky, ~10–15 mm in their longest dimension
+  (`RollerConfig.deco_size_mm`), with no isolated thin islands.
+- Name letter height = 40% of the roller diameter
+  (`RollerConfig.text_diameter_fraction`), centred on the circumference and
+  running along the length.
 
 ## Themes & decoration icons
 
@@ -172,9 +176,20 @@ in the run log.
 
 ## Implementation notes
 
+- **Config** (`RollerConfig`, pydantic): every tunable parameter — name, theme,
+  geometry, relief, stamp, resolution and layout — is declared, type-checked
+  and range-checked here with sensible defaults. The CLI just maps flags onto
+  these fields, and bad inputs fail fast with a clear message before any work
+  starts. This is the single place to look (and validate) when an agent drives
+  the generator.
+- **Module split**: roller-specific logic (config, themes, heightmap, outputs)
+  lives in `playdoh_roller.py`; the generic, reusable pieces live in
+  `svg_processing.py` (rasterizer, fonts) and `mesh_utils.py` (cylinder mesh,
+  end stamp, handles, upright transform) so other tools can import them.
 - The pattern (name + decorations) is built once as a 2D grayscale heightmap
   via PIL/numpy (255 = raised), reused for both outputs.
-- **SVG rasterizer** (`rasterize_svg`): pure-Python, no native cairo. It parses
+- **SVG rasterizer** (`svg_processing.rasterize_svg`): pure-Python, no native
+  cairo. It parses
   each icon with `svgpathtools`, flattens every continuous sub-path to a
   polygon, composites them (XOR for even-odd holes / OR for union silhouettes),
   supersamples ×3 then downsamples for clean edges, and returns a 1-bit mask.
@@ -185,10 +200,14 @@ in the run log.
   (not random). Cells overlapping the central text band are skipped, and each
   icon mask is also pasted wrapped at ±circumference so the pattern tiles
   cleanly across the seam.
-- **STL** uses a displaced-cylinder grid (the efficient, watertight equivalent
-  of "add a radial prism per raised pixel"): grid vertices on raised texels sit
-  at `R + emboss`, the rest at `R`, so features extrude outward. The grid is
-  capped at 720×720 to keep the triangle count sane. A plain solid core
-  cylinder is concatenated under the textured shell to guarantee
-  watertightness, plus two narrower handle cylinders at the ends (slightly
-  overlapping the body).
+- **STL** (`mesh_utils.build_roller_mesh`) uses a displaced-cylinder grid (the
+  efficient, watertight equivalent of "add a radial prism per raised pixel"):
+  grid vertices on raised texels sit at `R + emboss`, the rest at `R`, so
+  features extrude outward (or inward at `R - emboss` under `--engrave`). The
+  grid is capped at 720×720 to keep the triangle count sane. Both ends are
+  closed to a centre point so the textured shell is one watertight solid — no
+  separate core needed. `--handles` adds two narrower handle cylinders at the
+  ends (slightly overlapping the body); `--top-stamp` raises an icon out of the
+  top end via `mesh_utils.polar_disk_relief`. Finally
+  `mesh_utils.stand_upright_on_end` rotates the barrel onto its end for
+  support-free printing.
