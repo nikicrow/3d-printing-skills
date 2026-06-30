@@ -51,9 +51,10 @@ python playdoh_roller.py --name "Imogen" --theme shapes --preview --stl
 
 Outputs are named `preview_<name>_<theme>.png` and `roller_<name>_<theme>.stl`.
 
-> **Note:** the large STL files are **generated locally and not committed** to
-> this repo (they're git-ignored). The repo keeps the generator, assets, and the
-> preview PNGs; regenerate any STL on demand with the command above.
+> **Note:** a few **example STLs are kept** in
+> [`printable_files/`](printable_files) (Ember / Imogen / Mikey). Additional
+> rollers are **generated locally and git-ignored** by default to keep the repo
+> light — regenerate any STL on demand with the command above.
 
 ### Options
 
@@ -120,7 +121,7 @@ To use it: roll the barrel over your Play-Doh by hand. 🎉
 playdoh_roller.py     the generator (single self-contained script)
 assets/               decoration SVGs + ATTRIBUTION.md
 previews/             example imprint previews (PNG)
-printable_files/      where STLs are written locally (git-ignored, not committed)
+printable_files/      example STLs (kept) + where new STLs are written (git-ignored)
 SKILL.md              full reference / how it works
 ```
 
