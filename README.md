@@ -62,8 +62,15 @@ Outputs are named `preview_<name>_<theme>.png` and `roller_<name>_<theme>.stl`.
 | `--radius` | `17.5` | Barrel radius in mm (35 mm diameter) |
 | `--length` | `90` | Imprint length in mm |
 | `--emboss` | `1.8` | How far features rise above the barrel, mm |
+| `--top-stamp` | off | Raise the theme's first icon out of the **top end** → doubles as a press-stamp |
+| `--stamp-relief` | `2.5` | Height of the top-end stamp icon, mm |
 | `--ppm` | `12` | Heightmap resolution (px/mm); ≥10 keeps detail crisp |
 | `--handles` | off | Add grip stubs at both ends (simple barrel by default) |
+
+> 🐝 **Top-end stamp:** `--top-stamp` raises the theme's signature icon (bee /
+> T-Rex / etc.) ~2.5 mm out of the roller's **up** end, so the end works as a
+> cute press-stamp. The bed end stays flat. It's part of the same watertight
+> solid (STL only; not shown in the flat preview).
 
 ---
 
