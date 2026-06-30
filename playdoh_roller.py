@@ -70,6 +70,7 @@ ROLLER_LENGTH_MM = 90          # usable imprint length
 HANDLE_LENGTH_MM = 22          # each handle end
 HANDLE_RADIUS_MM = 10          # comfortable grip
 EMBOSS_HEIGHT_MM = 1.8         # raised above the cylinder surface
+STAMP_RELIEF_MM = 2.5          # height of the top-end stamp icon (--top-stamp)
 RESOLUTION_PPM = 12            # pixels per mm for the internal heightmap
                                # (>=10 keeps detailed icons like the dinos crisp)
 
@@ -347,6 +348,71 @@ def make_preview(name, theme, args):
 
 
 # ===========================================================================
+# TOP-END STAMP  — raise one theme icon out of the upright roller's top face,
+# turning that end into a cute press-stamp. Built as a displaced polar disk that
+# SHARES the body's end ring, so it stays part of the single watertight solid
+# (no booleans needed). The top face is the x=0 end (which becomes the UP end
+# once the roller is stood upright); the icon bumps OUTWARD to x = -relief.
+# ===========================================================================
+def _top_stamp_geometry(theme, R, relief, ppm, n_theta, thetas, start_index,
+                        stamp_icon=None):
+    # default to the theme's first icon; --stamp-icon picks a specific one
+    fname, mode = THEMES[theme][0]
+    if stamp_icon:
+        want = stamp_icon if stamp_icon.endswith(".svg") else stamp_icon + ".svg"
+        for f, mo in THEMES[theme]:
+            if f == want:
+                fname, mode = f, mo
+                break
+        else:
+            fname, mode = want, "evenodd"   # allow any asset in assets/
+    size_img = max(64, int(2 * R * ppm))
+    mask = rasterize_svg(os.path.join(ASSET_DIR, fname), size_img,
+                         mode=mode, margin=0.18)   # extra margin -> fits disk
+    M = np.asarray(mask) > 127
+    himg, wimg = M.shape
+    K = max(8, int(R * ppm * 0.6))          # number of radial rings
+    ct = np.cos(thetas)
+    st = np.sin(thetas)
+
+    def icon_x(r, i):
+        y = r * ct[i]
+        z = r * st[i]
+        u = int(round((0.5 + 0.5 * (y / R)) * (wimg - 1)))
+        v = int(round((0.5 + 0.5 * (z / R)) * (himg - 1)))
+        if 0 <= u < wimg and 0 <= v < himg and M[v, u]:
+            return -relief                  # raised outward from the x=0 end
+        return 0.0
+
+    new_verts = []
+    for k in range(1, K):                   # interior rings, radius R -> 0
+        r = R * (K - k) / K
+        for i in range(n_theta):
+            new_verts.append([icon_x(r, i), r * ct[i], r * st[i]])
+    center_on = M[(himg - 1) // 2, (wimg - 1) // 2]
+    new_verts.append([-relief if center_on else 0.0, 0.0, 0.0])
+    center_idx = start_index + (K - 1) * n_theta
+
+    def ridx(k, i):
+        if k == 0:
+            return i                         # shares the body's ring 0
+        return start_index + (k - 1) * n_theta + i
+
+    faces = []
+    for k in range(K - 1):
+        for i in range(n_theta):
+            i2 = (i + 1) % n_theta
+            a, b = ridx(k, i), ridx(k, i2)
+            c, d = ridx(k + 1, i), ridx(k + 1, i2)
+            faces.append([a, d, b])          # winding fixed later by fix_normals
+            faces.append([a, c, d])
+    for i in range(n_theta):
+        i2 = (i + 1) % n_theta
+        faces.append([ridx(K - 1, i), center_idx, ridx(K - 1, i2)])
+    return np.array(new_verts, dtype=np.float64), faces
+
+
+# ===========================================================================
 # OUTPUT MODE 2 — STL
 # ===========================================================================
 def make_stl(name, theme, args):
@@ -377,6 +443,8 @@ def make_stl(name, theme, args):
     # INWARD (R-E) so the dough comes out raised instead of indented.
     sign = -1.0 if args.engrave else 1.0
     radii = R + sign * E * (samp > 0.5)                  # (n_z, n_theta)
+    if args.top_stamp:
+        radii[0, :] = R   # clean circular ring on the stamped (x=0) end
 
     # Build vertices. Axis = X, cross-section in (Y, Z). We add a centre point at
     # each end so the textured surface CLOSES INTO A SINGLE WATERTIGHT SOLID.
@@ -408,12 +476,23 @@ def make_stl(name, theme, args):
             dd = (j + 1) * n_theta + i2
             faces.append([a, b, dd])
             faces.append([a, dd, c])
-    # End caps: fan each end ring to its centre point -> closes the solid.
+    # Bed end (x=L) -> flat fan to its centre point.
     top = (n_z - 1) * n_theta
     for i in range(n_theta):
         i2 = (i + 1) % n_theta
-        faces.append([c0, i, i2])                   # z=0 end
-        faces.append([c1, top + i2, top + i])       # z=L end
+        faces.append([c1, top + i2, top + i])
+
+    # Stamp end (x=0): either a raised icon stamp disk, or a plain flat fan.
+    if args.top_stamp:
+        sv, sf = _top_stamp_geometry(theme, R, args.stamp_relief, args.ppm,
+                                     n_theta, thetas, start_index=c1 + 1,
+                                     stamp_icon=args.stamp_icon)
+        verts = np.vstack([verts, sv])
+        faces.extend(sf)
+    else:
+        for i in range(n_theta):
+            i2 = (i + 1) % n_theta
+            faces.append([c0, i, i2])
 
     body = trimesh.Trimesh(vertices=verts, faces=np.array(faces), process=True)
     body.fix_normals()                              # consistent outward normals
@@ -473,6 +552,14 @@ def main():
                    help="v2: recess the name/decorations INTO the roller so the "
                         "dough imprint comes out RAISED. Outputs get a _v2 "
                         "suffix.")
+    p.add_argument("--top-stamp", action="store_true",
+                   help="raise the theme's first icon out of the roller's top "
+                        "end so it doubles as a press-stamp")
+    p.add_argument("--stamp-relief", type=float, default=STAMP_RELIEF_MM,
+                   help="height of the top-end stamp icon in mm")
+    p.add_argument("--stamp-icon", default=None,
+                   help="which asset to use for the top stamp (e.g. star, heart, "
+                        "bee); defaults to the theme's first icon")
     p.add_argument("--ppm", type=int, default=RESOLUTION_PPM)
     p.add_argument("--preview", action="store_true", help="write preview PNG")
     p.add_argument("--stl", action="store_true", help="write printable STL")

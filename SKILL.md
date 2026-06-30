@@ -62,7 +62,18 @@ flags is required.
 | `--handle-length` | `22` | Length of each handle end, mm |
 | `--handle-radius` | `10` | Handle grip radius, mm |
 | `--emboss` | `1.8` | How far text/decorations rise above the barrel, mm |
+| `--top-stamp` | off | Raise the theme's first icon out of the roller's **top end** so it doubles as a press-stamp (STL only) |
+| `--stamp-relief` | `2.5` | Height of the top-end stamp icon, mm |
 | `--ppm` | `12` | Heightmap resolution, pixels per mm (≥10 keeps detailed icons like the dinos crisp; lower = faster/rougher) |
+
+### Top-end stamp (`--top-stamp`)
+
+Turns the roller's top face into a cute press-stamp by raising the theme's first
+icon (bee / T-Rex / circle / cat / banana) ~2.5 mm out of the **up** end (the
+bed end stays flat for adhesion). It's built into the same single watertight
+solid (a displaced polar disk that shares the body's end ring — no booleans), so
+it stays print-clean. STL only — the flat preview doesn't show it. Adds geometry,
+so STL generation takes a couple of minutes.
 
 ### Output file naming
 
