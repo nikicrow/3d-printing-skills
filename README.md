@@ -117,12 +117,20 @@ To use it: roll the barrel over your Play-Doh by hand. 🎉
 ## What's in here
 
 ```
-playdoh_roller.py     the generator (single self-contained script)
+playdoh_roller.py     the roller generator: RollerConfig + heightmap + outputs
+svg_processing.py     reusable SVG → mask rasterizer + font loading
+mesh_utils.py         reusable heightmap → watertight cylinder mesh helpers
 assets/               decoration SVGs + ATTRIBUTION.md
 previews/             example imprint previews (PNG)
 printable_files/      ready-to-slice STL/3MF files for the whole collection
 SKILL.md              full reference / how it works
 ```
+
+`svg_processing.py` and `mesh_utils.py` are deliberately project-agnostic, so the
+next parametric tool (stamps, cookie cutters, stencils, …) can reuse the same
+SVG rasterization and cylinder-meshing instead of re-implementing them. All
+tunable parameters live in one validated `RollerConfig` (pydantic) class at the
+top of `playdoh_roller.py`, so bad inputs fail fast with a clear message.
 
 ---
 
