@@ -72,6 +72,7 @@ import argparse
 import math
 import os
 import random
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -169,6 +170,11 @@ class RollerConfig(BaseModel):
         Letter height as a fraction of the roller diameter (0–1].
     min_feature_mm : float
         Minimum line width in mm, for printability.
+    name_clearance_mm : float
+        Clearance kept between each end of the name and the end of the roller,
+        in mm. If the name is too long to fit the roller with this clearance on
+        both sides, the roller length is grown to suit (see
+        :func:`build_heightmap`).
     asset_dir : str
         Directory holding the decoration SVG files.
     out_dir : str
@@ -205,6 +211,7 @@ class RollerConfig(BaseModel):
     deco_size_mm: float = Field(12.0, gt=0)
     text_diameter_fraction: float = Field(0.40, gt=0, le=1.0)
     min_feature_mm: float = Field(1.5, gt=0)
+    name_clearance_mm: float = Field(10.0, ge=0)
 
     # ---- paths ----
     asset_dir: str = ASSET_DIR
@@ -275,6 +282,92 @@ def load_theme_stamps(cfg):
 
 
 # ===========================================================================
+# NAME FIT — measure the name and grow the roller if it would not fit
+# ===========================================================================
+def measure_name_length_mm(cfg):
+    """Measure how long the name renders along the roller, at target height.
+
+    Sizes the font so the name's cap height matches the target letter height
+    (``text_diameter_fraction`` of the diameter) — the *height-driven* size,
+    ignoring any width constraint — then returns the rendered word width. This
+    is the length the name occupies along the roller axis once rotated, and it
+    matches the size :func:`build_heightmap` renders at whenever the name fits.
+
+    Parameters
+    ----------
+    cfg : RollerConfig
+        Run configuration; ``name``, ``radius_mm``, ``text_diameter_fraction``
+        and ``ppm`` drive the measurement.
+
+    Returns
+    -------
+    float
+        The name's rendered length in mm at the target letter height.
+    """
+    ppm = cfg.ppm
+    diameter_mm = 2 * cfg.radius_mm
+    letter_h_px = cfg.text_diameter_fraction * diameter_mm * ppm
+    d = ImageDraw.Draw(Image.new("L", (8, 8), 0))
+
+    font, _ = load_font(letter_h_px)
+    size_guess = letter_h_px
+    tw = 0
+    for _ in range(8):
+        font, _ = load_font(size_guess)
+        bbox = d.textbbox((0, 0), cfg.name, font=font)
+        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        if th <= 1 or tw <= 1:
+            break
+        scale_h = letter_h_px / th
+        if abs(scale_h - 1.0) < 0.02:
+            break
+        size_guess *= scale_h
+    return tw / ppm
+
+
+def fit_length_to_name(cfg):
+    """Grow the roller length if the name would not fit with end clearance.
+
+    Validates that the name (measured at the target letter height, see
+    :func:`measure_name_length_mm`) fits within the roller length while leaving
+    ``cfg.name_clearance_mm`` of clear space at *each* end. If it does not, a
+    warning is raised and ``cfg.length_mm`` is extended to
+    ``name_length + 2 * name_clearance_mm`` so the letters stay full size
+    instead of being shrunk to cram them in. Names that already fit are left
+    untouched, so their output is unchanged.
+
+    The adjustment is idempotent: once the length has been grown, a repeat call
+    finds the name fits and does nothing (so preview + STL runs stay consistent
+    and warn only once).
+
+    Parameters
+    ----------
+    cfg : RollerConfig
+        Run configuration. ``length_mm`` is mutated in place when the name is
+        too long.
+
+    Returns
+    -------
+    RollerConfig
+        The same ``cfg`` object, with ``length_mm`` possibly increased.
+    """
+    name_len = measure_name_length_mm(cfg)
+    required = name_len + 2 * cfg.name_clearance_mm
+    if required > cfg.length_mm:
+        warnings.warn(
+            f"name {cfg.name!r} is {name_len:.1f}mm long at the target letter "
+            f"height, which does not fit a {cfg.length_mm:.1f}mm roller with "
+            f"{cfg.name_clearance_mm:.1f}mm clearance each side; extending "
+            f"roller length to {required:.1f}mm.",
+            stacklevel=2)
+        print(f"[fit] name {cfg.name!r} ({name_len:.1f}mm) needs a longer "
+              f"roller; length {cfg.length_mm:.1f}mm -> {required:.1f}mm "
+              f"({cfg.name_clearance_mm:.1f}mm clearance each side)")
+        cfg.length_mm = required
+    return cfg
+
+
+# ===========================================================================
 # HEIGHTMAP GENERATION
 # ===========================================================================
 def build_heightmap(cfg):
@@ -283,16 +376,19 @@ def build_heightmap(cfg):
     255 = raised feature, 0 = base cylinder surface.
 
     The x axis (width) runs around the circumference and wraps/tiles; the y
-    axis (height) runs along the roller length (the print axis). The name is
-    rendered horizontally, auto-sized to fit, then rotated 90° so it reads
-    lengthways and centred on the circumference; themed decorations fill a
-    seeded, jittered grid everywhere the name is not, wrapping across the seam
-    so the pattern tiles cleanly.
+    axis (height) runs along the roller length (the print axis). Before laying
+    anything out, :func:`fit_length_to_name` grows ``cfg.length_mm`` if the name
+    would not fit with the configured end clearance. The name is then rendered
+    horizontally, auto-sized to fit, then rotated 90° so it reads lengthways and
+    centred on the circumference; themed decorations fill a seeded, jittered
+    grid everywhere the name is not, wrapping across the seam so the pattern
+    tiles cleanly.
 
     Parameters
     ----------
     cfg : RollerConfig
-        Run configuration (name, theme, geometry, resolution and layout).
+        Run configuration (name, theme, geometry, resolution and layout). Its
+        ``length_mm`` may be grown in place to fit a long name.
 
     Returns
     -------
@@ -305,6 +401,8 @@ def build_heightmap(cfg):
     n_deco : int
         Number of decoration cells placed (text-band cells excluded).
     """
+    fit_length_to_name(cfg)   # grow the roller in place if the name won't fit
+
     name = cfg.name
     radius_mm = cfg.radius_mm
     ppm = cfg.ppm
@@ -594,6 +692,7 @@ def config_from_args(args):
         deco_size_mm=args.deco_size,
         text_diameter_fraction=args.text_fraction,
         min_feature_mm=args.min_feature,
+        name_clearance_mm=args.name_clearance,
     )
 
 
@@ -630,6 +729,10 @@ def main():
                    help="letter height as a fraction of the roller diameter")
     p.add_argument("--min-feature", type=float, default=d.min_feature_mm,
                    help="minimum printable feature width in mm")
+    p.add_argument("--name-clearance", type=float, default=d.name_clearance_mm,
+                   help="clear space kept at each end of the name in mm; the "
+                        "roller is grown if the name won't fit with this "
+                        "clearance both sides")
     p.add_argument("--preview", action="store_true", help="write preview PNG")
     p.add_argument("--stl", action="store_true", help="write printable STL")
     args = p.parse_args()
