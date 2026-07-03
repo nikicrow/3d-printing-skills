@@ -118,19 +118,38 @@ To use it: roll the barrel over your Play-Doh by hand. 🎉
 
 ```
 playdoh_roller.py     the roller generator: RollerConfig + heightmap + outputs
+playdoh_stamp.py      the stamp generator: StampConfig + face mask + outputs
 svg_processing.py     reusable SVG → mask rasterizer + font loading
-mesh_utils.py         reusable heightmap → watertight cylinder mesh helpers
+mesh_utils.py         reusable mesh helpers (cylinder rollers + flat slab stamps)
 assets/               decoration SVGs + ATTRIBUTION.md
 previews/             example imprint previews (PNG)
 printable_files/      ready-to-slice STL/3MF files for the whole collection
 SKILL.md              full reference / how it works
 ```
 
-`svg_processing.py` and `mesh_utils.py` are deliberately project-agnostic, so the
-next parametric tool (stamps, cookie cutters, stencils, …) can reuse the same
-SVG rasterization and cylinder-meshing instead of re-implementing them. All
-tunable parameters live in one validated `RollerConfig` (pydantic) class at the
-top of `playdoh_roller.py`, so bad inputs fail fast with a clear message.
+`svg_processing.py` and `mesh_utils.py` are deliberately project-agnostic. The
+stamp generator is the first tool to reuse them: `playdoh_stamp.py` shares the
+exact same SVG rasterization, chunky fonts and displaced-grid meshing, adding
+only stamp-specific layout. All tunable parameters live in one validated
+pydantic config per tool (`RollerConfig` / `StampConfig`, `extra="forbid"`), so
+bad inputs fail fast with a clear message.
+
+### 🔤 Name & motif stamps (`playdoh_stamp.py`)
+
+A companion tool: a chunky slab with a grippy dome-knob handle that presses a
+kid's **name** (and/or an SVG motif) into the dough. Two imprint modes —
+`raised` (default; name pops up, engraved into a solid plateau, most
+print-robust) and `indented` (classic pressed-in seal). Exported **face-down,
+no supports**. Everything on the face is auto-mirrored so the dough reads right.
+
+```bash
+# name stamp with a framing border, preview + STL
+python playdoh_stamp.py --name "Ember" --border --preview --stl
+
+# optional: add a little icon above the name (--icon), or make a
+# single-motif picture stamp from any approved SVG on a round plate
+python playdoh_stamp.py --svg assets/flower.svg --shape circle --stl
+```
 
 ---
 
