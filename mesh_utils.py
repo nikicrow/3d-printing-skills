@@ -3,11 +3,12 @@
 mesh_utils.py
 =============
 Generic, project-agnostic geometry helpers for turning a 2D grayscale
-heightmap into a watertight, print-ready cylindrical solid.
+heightmap into watertight, print-ready solids — cylindrical rollers and flat
+slab stamps.
 
-Like :mod:`svg_processing`, nothing here knows about Play-Doh rollers or
-themes — these are the reusable "back end" shared by any tool that wraps a
-relief pattern around a barrel:
+Like :mod:`svg_processing`, nothing here knows about Play-Doh rollers, stamps
+or themes — these are the reusable "back end" shared by any tool that turns a
+relief pattern into printable geometry:
 
   * ``build_roller_mesh`` — wrap a heightmap onto a cylinder so raised texels
     bump the surface outward (or inward, for an engraved/negative roller),
@@ -19,6 +20,10 @@ relief pattern around a barrel:
     barrel.
   * ``stand_upright_on_end`` — rotate an X-axis barrel to stand on its end
     (axis → Z) and recentre it on the bed for support-free printing.
+  * ``build_slab_relief`` — extrude a relief heightmap into a flat watertight
+    slab (bumpy underside, flat top): the stamp/plate primitive.
+  * ``dome_knob`` — a parametric watertight squashed hemisphere, used as a
+    self-supporting grip handle.
 
 The displaced-cylinder construction is the efficient, watertight equivalent of
 "add a radial prism per raised pixel": grid vertices on raised texels sit at
@@ -309,3 +314,159 @@ def stand_upright_on_end(mesh):
                             -(b[0, 1] + b[1, 1]) / 2,     # centre Y
                             -b[0, 2]])                    # sit on z=0
     return mesh
+
+
+def build_slab_relief(bottom_z, top_z, width, length):
+    """Extrude a relief heightmap into a flat, watertight slab.
+
+    The planar analogue of :func:`build_roller_mesh`: instead of wrapping the
+    relief around a barrel, it displaces the **underside** of a rectangular
+    plate. A grid of vertices (matching the shape of ``bottom_z``) spans
+    ``[0, width] x [0, length]`` in X/Y; the bottom vertices sit at
+    ``bottom_z`` and the top vertices at the constant plane ``top_z``. The two
+    surfaces are stitched by four side walls into a single closed box, so
+    features carved into / raised from the underside are real protrusions of
+    one solid (no booleans).
+
+    Built directly in print orientation: the plate lies flat with its stamping
+    face down, so the lowest points of ``bottom_z`` (typically ``0``) rest on
+    the bed and the flat top faces up (ready for a handle).
+
+    Parameters
+    ----------
+    bottom_z : numpy.ndarray, shape (H, W)
+        Underside height, in mm, at each grid node. Axis 0 (rows) runs along
+        ``length`` (Y); axis 1 (columns) along ``width`` (X). Where this is
+        higher than the surrounding contact plane, the face is recessed
+        (a groove); where it is lower, it protrudes toward the bed.
+    top_z : float
+        Constant Z, in mm, of the flat top surface (must exceed
+        ``bottom_z.max()`` for a solid plate).
+    width : float
+        Plate extent along X, in mm.
+    length : float
+        Plate extent along Y, in mm.
+
+    Returns
+    -------
+    trimesh.Trimesh
+        The slab as a single watertight mesh, built with ``process=False``
+        (topology guarantees watertightness; normal winding is left for the
+        slicer to auto-repair on import).
+    """
+    import trimesh
+
+    H, Wg = bottom_z.shape
+    xs = np.linspace(0.0, width, Wg)
+    ys = np.linspace(0.0, length, H)
+    gx, gy = np.meshgrid(xs, ys)
+
+    n = H * Wg
+    bottom = np.stack([gx.ravel(), gy.ravel(), bottom_z.ravel()], axis=1)
+    top = np.stack([gx.ravel(), gy.ravel(), np.full(n, top_z)], axis=1)
+    verts = np.vstack([bottom, top])            # [0:n]=bottom, [n:2n]=top
+
+    def idx(j, i):
+        return j * Wg + i
+
+    J, I = np.meshgrid(np.arange(H - 1), np.arange(Wg - 1), indexing="ij")
+    a = idx(J, I)
+    b = idx(J, I + 1)
+    c = idx(J + 1, I)
+    d = idx(J + 1, I + 1)
+
+    # Bottom surface (normals point DOWN, -Z).
+    bot = np.concatenate([
+        np.stack([a, b, d], -1).reshape(-1, 3),
+        np.stack([a, d, c], -1).reshape(-1, 3)])
+    # Top surface (flat, normals UP, +Z) — same grid + n, reversed winding.
+    top_f = np.concatenate([
+        np.stack([a + n, d + n, b + n], -1).reshape(-1, 3),
+        np.stack([a + n, c + n, d + n], -1).reshape(-1, 3)])
+
+    # Four side walls stitching the bottom boundary to the top boundary.
+    walls = []
+    for j, flip in ((0, True), (H - 1, False)):          # edges along X
+        i = np.arange(Wg - 1)
+        b0, b1 = idx(j, i), idx(j, i + 1)
+        t0, t1 = b0 + n, b1 + n
+        if flip:
+            walls.append(np.stack([b0, b1, t1], -1))
+            walls.append(np.stack([b0, t1, t0], -1))
+        else:
+            walls.append(np.stack([b0, t1, b1], -1))
+            walls.append(np.stack([b0, t0, t1], -1))
+    for i, flip in ((0, False), (Wg - 1, True)):         # edges along Y
+        j = np.arange(H - 1)
+        b0, b1 = idx(j, i), idx(j + 1, i)
+        t0, t1 = b0 + n, b1 + n
+        if flip:
+            walls.append(np.stack([b0, b1, t1], -1))
+            walls.append(np.stack([b0, t1, t0], -1))
+        else:
+            walls.append(np.stack([b0, t1, b1], -1))
+            walls.append(np.stack([b0, t0, t1], -1))
+
+    faces = np.concatenate([bot, top_f] + walls)
+    return trimesh.Trimesh(vertices=verts, faces=faces, process=False)
+
+
+def dome_knob(radius, height, n_theta=48, n_phi=14):
+    """Build a watertight squashed hemisphere (a grip knob) on its flat base.
+
+    A parametric dome — no shapely / boolean backend required — tessellated as
+    ``n_phi`` latitude rings from the base (``z = 0``, radius ``radius``) up to
+    a single apex at ``z = height``, closed underneath by a centre-fan base
+    disk. Wide sturdy base + rounded, self-supporting top make it a good
+    toddler-friendly handle that prints without supports. Place it by
+    translating so its base sits (slightly embedded) on the part it grips.
+
+    Parameters
+    ----------
+    radius : float
+        Base radius of the dome, in mm.
+    height : float
+        Apex height above the base, in mm (``< radius`` gives a flatter, comfier
+        knob; ``== radius`` is a true hemisphere).
+    n_theta : int, optional
+        Angular divisions around the dome. Defaults to ``48``.
+    n_phi : int, optional
+        Latitude rings from base to apex. Defaults to ``14``.
+
+    Returns
+    -------
+    trimesh.Trimesh
+        The dome as a single watertight mesh with its flat base on ``z = 0``,
+        built with ``process=False``.
+    """
+    import trimesh
+
+    phis = np.linspace(0.0, math.pi / 2, n_phi + 1)      # 0=base ring, pi/2=apex
+    thetas = np.linspace(0.0, 2 * math.pi, n_theta, endpoint=False)
+    ct, st = np.cos(thetas), np.sin(thetas)
+
+    rings = phis[:-1]                                    # drop apex (a point)
+    rr = radius * np.cos(rings)
+    zz = height * np.sin(rings)
+    V = np.empty((len(rings) * n_theta, 3))
+    for k in range(len(rings)):
+        base = k * n_theta
+        V[base:base + n_theta, 0] = rr[k] * ct
+        V[base:base + n_theta, 1] = rr[k] * st
+        V[base:base + n_theta, 2] = zz[k]
+    apex = len(V)
+    base_c = apex + 1
+    V = np.vstack([V, [[0, 0, height]], [[0, 0, 0.0]]])
+
+    I = np.arange(n_theta)
+    I2 = (I + 1) % n_theta
+    faces = []
+    for k in range(len(rings) - 1):                     # side quads
+        b0, b1 = k * n_theta, (k + 1) * n_theta
+        faces.append(np.stack([b0 + I, b1 + I, b1 + I2], -1))
+        faces.append(np.stack([b0 + I, b1 + I2, b0 + I2], -1))
+    top = (len(rings) - 1) * n_theta                    # fan to apex
+    faces.append(np.stack([top + I, np.full(n_theta, apex), top + I2], -1))
+    faces.append(np.stack([I, I2, np.full(n_theta, base_c)], -1))  # base disk
+    return trimesh.Trimesh(vertices=V, faces=np.concatenate(faces),
+                           process=False)
