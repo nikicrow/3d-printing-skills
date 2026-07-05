@@ -1,15 +1,17 @@
 ---
 name: playdoh-stamp
-description: Generate a parametric, toddler-friendly Play-Doh / clay STAMP (preview PNG and printable STL) — a chunky slab with a grippy dome-knob handle that presses a child's NAME (and/or an SVG motif) into the dough. Companion to the playdoh-roller skills; reuses the same fonts, icon assets, and watertight STL pipeline.
+description: Generate a parametric, toddler-friendly Play-Doh / clay STAMP (preview PNG and printable STL) — a compact ~5cm slab with a short grippy cylinder handle and chamfered edges that presses a child's NAME (and/or an SVG motif) into the dough. Companion to the playdoh-roller skills; reuses the same fonts, icon assets, and watertight STL pipeline.
 ---
 
 # Play-Doh Name & Motif Stamp Generator
 
-Generates a custom press-stamp for Play-Doh / clay: a chunky slab with a grippy
-dome-knob handle on the back and a kid's **name** (parametric text) and/or an
-**SVG motif** on the stamping face. Kids press it into a flat slab of dough to
-stamp their creations with their name. Outputs a flat PNG preview of the dough
-imprint, or a printable STL of the actual stamp.
+Generates a custom press-stamp for Play-Doh / clay: a compact (~5 cm wide) slab
+with a short, grippy **cylinder handle** on the back (easy for a toddler to
+grasp) and **chamfered edges** (safer to hold, cleaner to print), carrying a
+kid's **name** (parametric text) and/or an **SVG motif** on the stamping face.
+Kids press it into a flat slab of dough to stamp their creations with their
+name. Outputs a flat PNG preview of the dough imprint, or a printable STL of the
+actual stamp.
 
 Companion to [[playdoh-roller]] / [[playdoh-roller-v2]] — it **reuses the same**
 chunky fonts, the same open-licensed silhouette icons in `assets/` (see
@@ -48,7 +50,7 @@ from `svg_processing.py` and `build_slab_relief` / `dome_knob` from
 # Preview the dough imprint (how the name will look pressed in the dough):
 python playdoh_stamp.py --name "Ember" --preview
 
-# Printable STL (face-down, no supports, grippy knob on top):
+# Printable STL (face-down, no supports, grippy cylinder on top):
 python playdoh_stamp.py --name "Ember" --stl
 
 # Name + little icon above it + a framing border, both outputs:
@@ -80,17 +82,20 @@ looks great for toddlers (the name pops up out of the dough).
 | `--icon` | — | Small SVG placed above the name (e.g. `apple.svg`, `star.svg`, `flower.svg`) |
 | `--imprint` | `raised` | `raised` (pop-up) or `indented` (pressed-in) — see table above |
 | `--shape` | `rect` | Plate footprint: `rect` or `circle` (circle is nice for single motifs) |
-| `--handle` | `knob` | Back grip: `knob` (dome), `bar` (rounded grip bar), or `none` |
+| `--handle` | `cylinder` | Back grip: `cylinder` (toddler grip), `knob` (dome), `bar`, or `none` |
 | `--border` | off | Add a framing border around the content |
-| `--letter-height` | `16` | Cap height of the name, mm (chunky/toddler-legible) |
-| `--margin` | `9` | Solid border of plate around the content, mm |
+| `--letter-height` | `8.5` | Cap height of the name, mm (tuned so names land ~5 cm wide) |
+| `--margin` | `6` | Solid border of plate around the content, mm |
 | `--thickness` | `4` | Solid slab thickness above the deepest relief, mm |
 | `--depth` | `2.0` | How deep the name is engraved / raised, mm |
-| `--knob-radius` | `11` | Dome-knob (or bar) radius, mm |
+| `--edge-chamfer` | `1.0` | 45° bevel on the plate's outer top/bottom edges, mm |
+| `--cylinder-radius` | `11` | Cylinder grip radius, mm (22 mm dia) |
+| `--cylinder-height` | `18` | Cylinder grip height, mm |
+| `--knob-radius` | `11` | Dome-knob (or bar) radius, mm (`--handle knob`/`bar`) |
 | `--knob-squash` | `0.75` | Dome height = radius × squash (flatter = comfier) |
 | `--icon-fraction` | `0.9` | Icon height relative to letter height |
 | `--border-width` | `2.5` | Framing-border line width, mm |
-| `--ppm` | `12` | Heightmap resolution, pixels per mm (≥10 keeps icons crisp) |
+| `--ppm` | `6` | Heightmap resolution, px/mm (6 = compact files; ≥10 for crisp icons) |
 
 ### Output file naming
 
@@ -108,10 +113,10 @@ Title and caption are baked into the image.
 ## 3D printing settings (Bambu Studio)
 
 - **Orientation**: the STL is exported **face-down** — stamping face flat on the
-  bed, knob pointing **up**. Print exactly as oriented; the STL already sits on
+  bed, handle pointing **up**. Print exactly as oriented; the STL already sits on
   `z = 0`.
-- **Supports**: **none**. The knob is a self-supporting dome; the plate is a
-  slab. No overhangs.
+- **Supports**: **none**. The cylinder grip prints as stacked rings and the
+  slab's edges are 45° chamfers — no overhangs.
 - **Layer height**: 0.15 mm for crisp letters (0.20 mm acceptable).
 - **Walls / infill**: 3+ walls, 15–20 % infill is plenty — stamps take little
   force.
@@ -131,8 +136,9 @@ generic work is delegated to the shared, project-agnostic modules:
 
 - `svg_processing.py` → `rasterize_svg`, `load_font` (identical to the roller's)
 - `mesh_utils.py` → `build_slab_relief` (flat watertight slab from a relief
-  heightmap) and `dome_knob` (parametric watertight hemisphere handle) — both
-  added alongside the roller's `build_roller_mesh` etc.
+  heightmap, with optional 45° edge chamfers), `grip_cylinder` (toddler cylinder
+  handle) and `dome_knob` (alternative hemisphere handle) — all added alongside
+  the roller's `build_roller_mesh` etc.
 
 `playdoh_stamp.py` itself only holds stamp-specific layout, colouring and CLI.
 
@@ -141,20 +147,24 @@ generic work is delegated to the shared, project-agnostic modules:
 - **Face heightmap** (`build_face`): renders the name in a chunky font at a
   target cap height (iterative font-size solve, same approach as the roller),
   optionally stacks a small icon above it and/or draws a rounded-rect / circle
-  border. Plate footprint = content + margins, clamped to a comfy minimum grip
-  size (≥ 40 × 26 mm). Motif-only mode rasterizes one big centred silhouette.
+  border. Letter height (default 8.5 mm) is tuned so names land ~5 cm wide.
+  Plate footprint = content + margins, clamped to a comfy minimum grip size
+  (≥ 40 × 28 mm, so the cylinder handle always fits). Motif-only mode rasterizes
+  one big centred silhouette.
 - **Mirroring**: for the STL the face mask is flipped in X (`np.fliplr`) so the
   pressed dough reads correctly. The preview is left un-mirrored (dough-reading).
 - **Slab mesh** (`mesh_utils.build_slab_relief`): the same **watertight
   displaced-grid** trick the roller uses, but on a flat plate. A grid of
   vertices has its **bottom surface follow the relief heightmap** and its **top
-  surface flat**; four side walls stitch them into a closed box. In `raised`
-  mode the background contacts the bed (`z = 0`) and the name is a recessed
-  groove at `z = depth`; in `indented` mode the raised letters contact the bed
-  and the background is recessed.
-- **Dome knob** (`mesh_utils.dome_knob`): a watertight squashed hemisphere built
-  parametrically (rings + apex + base disc) — **no shapely / boolean deps** — so
-  it prints as a sturdy, self-supporting grip. `bar` builds a horizontal
+  surface flat**, closed into one solid. In `raised` mode the background
+  contacts the bed (`z = 0`) and the name is a recessed groove at `z = depth`;
+  in `indented` mode the raised letters contact the bed. The outer top/bottom
+  edges are bevelled 45° (`chamfer`): the flat faces inset and the rim runs
+  bottom-bevel → vertical wall → top-bevel (safer + no elephant-foot).
+- **Cylinder grip** (`mesh_utils.grip_cylinder`): a short upright cylinder
+  (default 22 mm dia × 18 mm) with a chamfered top edge — prints as stacked
+  rings, no supports, easy for a toddler to grasp. `dome_knob` (hemisphere) and
+  a horizontal `bar` remain as alternatives. `bar` builds a horizontal
   `trimesh` capsule resting on the plate.
 - **Assembly**: the plate and handle are concatenated (they overlap slightly);
   the slicer unions overlapping solids at slice time — the same approach the

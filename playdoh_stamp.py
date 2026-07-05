@@ -4,10 +4,11 @@ playdoh_stamp.py
 ================
 Parametric toddler-friendly Play-Doh / clay NAME & MOTIF stamp generator.
 
-A stamp is a chunky slab with a grippy dome-knob handle on the back. The
-stamping face carries a name (parametric text) and/or a motif rasterized from
-an SVG icon. Press it into a flat slab of Play-Doh and it leaves the design
-behind.
+A stamp is a chunky ~5 cm slab with a short, grippy cylinder handle on the back
+(easy for a toddler to grasp) and chamfered edges (safer to hold, cleaner to
+print). The stamping face carries a name (parametric text) and/or a motif
+rasterized from an SVG icon. Press it into a flat slab of Play-Doh and it
+leaves the design behind.
 
 Like :mod:`playdoh_roller`, all tunable parameters are collected in a validated
 :class:`StampConfig` (a pydantic model), and all the heavy lifting is delegated
@@ -36,7 +37,7 @@ USAGE
     # Preview PNG of the dough imprint:
     python playdoh_stamp.py --name "Ember" --preview
 
-    # Printable STL (face-down, no supports, grippy knob on top):
+    # Printable STL (face-down, no supports, grippy cylinder on top):
     python playdoh_stamp.py --name "Ember" --stl
 
     # Name + little icon above it + a framing border, both outputs:
@@ -58,9 +59,9 @@ DEPENDENCIES
 3D PRINTING NOTES (read before slicing)
 ----------------------------------------------------------------------------
   * Orientation   : the STL is exported FACE-DOWN (stamping face flat on the
-                    bed, knob pointing UP). Print exactly as oriented.
-  * Supports      : NONE. The knob is a self-supporting dome; the plate is a
-                    slab. No overhangs.
+                    bed, handle pointing UP). Print exactly as oriented.
+  * Supports      : NONE. The cylinder grip prints as stacked rings and the
+                    chamfered slab has only 45° bevels — no overhangs.
   * Layer height  : 0.15 mm for crisp letters (0.20 mm acceptable).
   * Walls/infill  : 3+ walls, 15-20% infill is plenty (stamps take little force).
   * First layer   : slow it down; a short brim helps adhesion (essential in
@@ -85,7 +86,7 @@ from pydantic import (
     model_validator,
 )
 
-from mesh_utils import build_slab_relief, dome_knob
+from mesh_utils import build_slab_relief, dome_knob, grip_cylinder
 from svg_processing import load_font, rasterize_svg
 
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -126,8 +127,9 @@ class StampConfig(BaseModel):
         (classic seal; raised mirrored letters on the face).
     shape : {'rect', 'circle'}
         Plate footprint. ``circle`` is nice for single motifs.
-    handle : {'knob', 'bar', 'none'}
-        Back-of-stamp grip. Default ``knob`` (a self-supporting dome).
+    handle : {'cylinder', 'knob', 'bar', 'none'}
+        Back-of-stamp grip. Default ``cylinder`` (a short upright grip that's
+        easy for a toddler to grasp); ``knob`` is a dome, ``bar`` a rounded bar.
     border : bool
         Draw a framing border around the content.
     letter_height_mm : float
@@ -138,8 +140,13 @@ class StampConfig(BaseModel):
         Solid slab thickness above the deepest relief, in mm.
     depth_mm : float
         How deep the name is engraved / raised, in mm.
+    edge_chamfer_mm : float
+        45° bevel on the plate's outer top/bottom edges, in mm (safer to
+        handle, cleaner to print). ``0`` keeps square edges.
+    cylinder_radius_mm, cylinder_height_mm : float
+        Size of the default cylinder grip handle, in mm.
     knob_radius_mm : float
-        Dome-knob (or bar) radius, in mm.
+        Dome-knob (or bar) radius, in mm (``handle="knob"``/``"bar"``).
     knob_squash : float
         Dome height = radius x squash (flatter = comfier); in (0, 1].
     icon_fraction : float
@@ -147,7 +154,7 @@ class StampConfig(BaseModel):
     border_width_mm : float
         Framing-border line width, in mm.
     ppm : int
-        Heightmap resolution in pixels per mm (>=10 keeps icons crisp).
+        Heightmap resolution in pixels per mm (6 default; >=10 for crisp icons).
     min_plate_w_mm : float
         Never make the plate narrower than this, in mm (grip + stability).
     min_plate_l_mm : float
@@ -168,23 +175,28 @@ class StampConfig(BaseModel):
     # ---- modes ----
     imprint: Literal["raised", "indented"] = "raised"
     shape: Literal["rect", "circle"] = "rect"
-    handle: Literal["knob", "bar", "none"] = "knob"
+    handle: Literal["cylinder", "knob", "bar", "none"] = "cylinder"
     border: bool = False
 
     # ---- geometry ----
-    letter_height_mm: float = Field(16.0, gt=0)
-    margin_mm: float = Field(9.0, gt=0)
+    letter_height_mm: float = Field(8.5, gt=0)
+    margin_mm: float = Field(6.0, gt=0)
     thickness_mm: float = Field(4.0, gt=0)
     depth_mm: float = Field(2.0, gt=0)
+    edge_chamfer_mm: float = Field(1.0, ge=0)
+    # cylinder handle (default) — short, easy for a toddler to grasp
+    cylinder_radius_mm: float = Field(11.0, gt=0)
+    cylinder_height_mm: float = Field(18.0, gt=0)
+    # dome-knob handle (alternative)
     knob_radius_mm: float = Field(11.0, gt=0)
     knob_squash: float = Field(0.75, gt=0, le=1.0)
     icon_fraction: float = Field(0.9, gt=0)
     border_width_mm: float = Field(2.5, gt=0)
 
     # ---- resolution / layout ----
-    ppm: int = Field(12, ge=1)
+    ppm: int = Field(6, ge=1)
     min_plate_w_mm: float = Field(40.0, gt=0)
-    min_plate_l_mm: float = Field(26.0, gt=0)
+    min_plate_l_mm: float = Field(28.0, gt=0)
 
     # ---- paths ----
     asset_dir: str = ASSET_DIR
@@ -408,13 +420,22 @@ def make_stl(cfg):
         # RAISED mirrored letters contact the bed (z=0); background recessed z=D.
         bottom_z = np.where(ink, 0.0, D)
 
-    plate = build_slab_relief(bottom_z.astype(np.float64), top_z, pw, pl)
+    # Keep the edge chamfer within the plate margin so it never bites the name.
+    chamfer = min(cfg.edge_chamfer_mm, cfg.margin_mm * 0.5,
+                  cfg.thickness_mm * 0.5)
+    plate = build_slab_relief(bottom_z.astype(np.float64), top_z, pw, pl,
+                              chamfer=chamfer)
     parts = [plate]
 
     # ---- Handle (sits ON the top face, pointing +Z; no supports needed) ----
     cx, cy = pw / 2.0, pl / 2.0
     embed = 0.8                                # merge depth into the plate
-    if cfg.handle == "knob":
+    if cfg.handle == "cylinder":
+        grip = grip_cylinder(cfg.cylinder_radius_mm, cfg.cylinder_height_mm,
+                             top_chamfer=min(2.0, cfg.cylinder_radius_mm * 0.35))
+        grip.apply_translation([cx, cy, top_z - embed])
+        parts.append(grip)
+    elif cfg.handle == "knob":
         knob = dome_knob(cfg.knob_radius_mm,
                          cfg.knob_radius_mm * cfg.knob_squash)
         knob.apply_translation([cx, cy, top_z - embed])
@@ -459,6 +480,9 @@ def config_from_args(args):
         margin_mm=args.margin,
         thickness_mm=args.thickness,
         depth_mm=args.depth,
+        edge_chamfer_mm=args.edge_chamfer,
+        cylinder_radius_mm=args.cylinder_radius,
+        cylinder_height_mm=args.cylinder_height,
         knob_radius_mm=args.knob_radius,
         knob_squash=args.knob_squash,
         icon_fraction=args.icon_fraction,
@@ -486,14 +510,21 @@ def main():
                         "indented: name pressed IN (classic seal).")
     p.add_argument("--shape", choices=["rect", "circle"], default=d.shape,
                    help="plate footprint (circle is nice for single motifs)")
-    p.add_argument("--handle", choices=["knob", "bar", "none"],
-                   default=d.handle, help="back-of-stamp grip (default: knob)")
+    p.add_argument("--handle", choices=["cylinder", "knob", "bar", "none"],
+                   default=d.handle,
+                   help="back-of-stamp grip (default: cylinder)")
     p.add_argument("--border", action="store_true",
                    help="add a framing border around the content")
     p.add_argument("--letter-height", type=float, default=d.letter_height_mm)
     p.add_argument("--margin", type=float, default=d.margin_mm)
     p.add_argument("--thickness", type=float, default=d.thickness_mm)
     p.add_argument("--depth", type=float, default=d.depth_mm)
+    p.add_argument("--edge-chamfer", type=float, default=d.edge_chamfer_mm,
+                   help="45° bevel on the plate's outer edges, mm")
+    p.add_argument("--cylinder-radius", type=float,
+                   default=d.cylinder_radius_mm)
+    p.add_argument("--cylinder-height", type=float,
+                   default=d.cylinder_height_mm)
     p.add_argument("--knob-radius", type=float, default=d.knob_radius_mm)
     p.add_argument("--knob-squash", type=float, default=d.knob_squash)
     p.add_argument("--icon-fraction", type=float, default=d.icon_fraction)
