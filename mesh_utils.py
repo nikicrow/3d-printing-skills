@@ -21,9 +21,11 @@ relief pattern into printable geometry:
   * ``stand_upright_on_end`` — rotate an X-axis barrel to stand on its end
     (axis → Z) and recentre it on the bed for support-free printing.
   * ``build_slab_relief`` — extrude a relief heightmap into a flat watertight
-    slab (bumpy underside, flat top): the stamp/plate primitive.
-  * ``dome_knob`` — a parametric watertight squashed hemisphere, used as a
-    self-supporting grip handle.
+    slab (bumpy underside, flat top), with optional 45° chamfers on the outer
+    edges: the stamp/plate primitive.
+  * ``dome_knob`` — a parametric watertight squashed hemisphere grip handle.
+  * ``grip_cylinder`` — a short upright cylinder grip with a chamfered top
+    edge (an easy-to-grasp toddler handle).
 
 The displaced-cylinder construction is the efficient, watertight equivalent of
 "add a radial prism per raised pixel": grid vertices on raised texels sit at
@@ -316,17 +318,24 @@ def stand_upright_on_end(mesh):
     return mesh
 
 
-def build_slab_relief(bottom_z, top_z, width, length):
+def build_slab_relief(bottom_z, top_z, width, length, chamfer=0.0):
     """Extrude a relief heightmap into a flat, watertight slab.
 
     The planar analogue of :func:`build_roller_mesh`: instead of wrapping the
     relief around a barrel, it displaces the **underside** of a rectangular
-    plate. A grid of vertices (matching the shape of ``bottom_z``) spans
-    ``[0, width] x [0, length]`` in X/Y; the bottom vertices sit at
-    ``bottom_z`` and the top vertices at the constant plane ``top_z``. The two
-    surfaces are stitched by four side walls into a single closed box, so
-    features carved into / raised from the underside are real protrusions of
-    one solid (no booleans).
+    plate. A grid of vertices (matching the shape of ``bottom_z``) carries the
+    relief on its bottom surface; the top is the constant plane ``top_z``. The
+    two surfaces are closed into a single watertight solid, so features carved
+    into / raised from the underside are real protrusions of one solid (no
+    booleans).
+
+    With ``chamfer > 0`` the outer top and bottom perimeter edges are bevelled
+    at 45° (safer to handle, and cleaner to print — the lifted bottom edge
+    avoids elephant-foot squish and the bevels remove sharp arrises). The flat
+    top and bottom faces are then inset by ``chamfer`` and the rim runs
+    bottom-bevel → vertical wall → top-bevel. Any relief must stay inside that
+    inset (callers keep it within the plate margin). With ``chamfer == 0`` the
+    plate has plain vertical side walls.
 
     Built directly in print orientation: the plate lies flat with its stamping
     face down, so the lowest points of ``bottom_z`` (typically ``0``) rest on
@@ -346,6 +355,10 @@ def build_slab_relief(bottom_z, top_z, width, length):
         Plate extent along X, in mm.
     length : float
         Plate extent along Y, in mm.
+    chamfer : float, optional
+        45° bevel on the outer top/bottom perimeter edges, in mm. ``0``
+        (default) gives plain vertical walls. Should be well under both the
+        plate half-thickness and the content margin.
 
     Returns
     -------
@@ -357,58 +370,144 @@ def build_slab_relief(bottom_z, top_z, width, length):
     import trimesh
 
     H, Wg = bottom_z.shape
-    xs = np.linspace(0.0, width, Wg)
-    ys = np.linspace(0.0, length, H)
+    c = float(chamfer)
+    lo, hi = (c, -c) if c > 0 else (0.0, 0.0)
+    xs = np.linspace(lo, width + hi, Wg)         # flat faces inset by chamfer
+    ys = np.linspace(lo, length + hi, H)
     gx, gy = np.meshgrid(xs, ys)
 
     n = H * Wg
     bottom = np.stack([gx.ravel(), gy.ravel(), bottom_z.ravel()], axis=1)
     top = np.stack([gx.ravel(), gy.ravel(), np.full(n, top_z)], axis=1)
-    verts = np.vstack([bottom, top])            # [0:n]=bottom, [n:2n]=top
 
     def idx(j, i):
         return j * Wg + i
 
     J, I = np.meshgrid(np.arange(H - 1), np.arange(Wg - 1), indexing="ij")
-    a = idx(J, I)
-    b = idx(J, I + 1)
-    c = idx(J + 1, I)
-    d = idx(J + 1, I + 1)
+    a, b = idx(J, I), idx(J, I + 1)
+    cc, d = idx(J + 1, I), idx(J + 1, I + 1)
 
-    # Bottom surface (normals point DOWN, -Z).
-    bot = np.concatenate([
+    bot = np.concatenate([                       # bottom surface (relief)
         np.stack([a, b, d], -1).reshape(-1, 3),
-        np.stack([a, d, c], -1).reshape(-1, 3)])
-    # Top surface (flat, normals UP, +Z) — same grid + n, reversed winding.
-    top_f = np.concatenate([
+        np.stack([a, d, cc], -1).reshape(-1, 3)])
+    top_f = np.concatenate([                      # flat top surface
         np.stack([a + n, d + n, b + n], -1).reshape(-1, 3),
-        np.stack([a + n, c + n, d + n], -1).reshape(-1, 3)])
+        np.stack([a + n, cc + n, d + n], -1).reshape(-1, 3)])
 
-    # Four side walls stitching the bottom boundary to the top boundary.
-    walls = []
-    for j, flip in ((0, True), (H - 1, False)):          # edges along X
-        i = np.arange(Wg - 1)
-        b0, b1 = idx(j, i), idx(j, i + 1)
-        t0, t1 = b0 + n, b1 + n
-        if flip:
-            walls.append(np.stack([b0, b1, t1], -1))
-            walls.append(np.stack([b0, t1, t0], -1))
-        else:
-            walls.append(np.stack([b0, t1, b1], -1))
-            walls.append(np.stack([b0, t0, t1], -1))
-    for i, flip in ((0, False), (Wg - 1, True)):         # edges along Y
-        j = np.arange(H - 1)
-        b0, b1 = idx(j, i), idx(j + 1, i)
-        t0, t1 = b0 + n, b1 + n
-        if flip:
-            walls.append(np.stack([b0, b1, t1], -1))
-            walls.append(np.stack([b0, t1, t0], -1))
-        else:
-            walls.append(np.stack([b0, t1, b1], -1))
-            walls.append(np.stack([b0, t0, t1], -1))
+    if c <= 0:
+        # Plain vertical side walls stitching bottom boundary to top boundary.
+        verts = np.vstack([bottom, top])
+        walls = []
+        for j in (0, H - 1):
+            i = np.arange(Wg - 1)
+            b0, b1 = idx(j, i), idx(j, i + 1)
+            walls.append(np.stack([b0, b1, b1 + n], -1))
+            walls.append(np.stack([b0, b1 + n, b0 + n], -1))
+        for i in (0, Wg - 1):
+            j = np.arange(H - 1)
+            b0, b1 = idx(j, i), idx(j + 1, i)
+            walls.append(np.stack([b0, b1, b1 + n], -1))
+            walls.append(np.stack([b0, b1 + n, b0 + n], -1))
+        faces = np.concatenate([bot, top_f] + walls)
+        return trimesh.Trimesh(vertices=verts, faces=faces, process=False)
 
-    faces = np.concatenate([bot, top_f] + walls)
+    # --- Chamfered rim -----------------------------------------------------
+    # Ordered loop of boundary grid nodes (clockwise around the inset face).
+    loop = ([(0, i) for i in range(Wg)]
+            + [(j, Wg - 1) for j in range(1, H)]
+            + [(H - 1, i) for i in range(Wg - 2, -1, -1)]
+            + [(j, 0) for j in range(H - 2, 0, -1)])
+    L = len(loop)
+    # Outer (full-footprint) XY for each boundary node.
+    ox = np.empty(L)
+    oy = np.empty(L)
+    A = np.empty(L, dtype=int)
+    for k, (j, i) in enumerate(loop):
+        ox[k] = 0.0 if i == 0 else (width if i == Wg - 1 else xs[i])
+        oy[k] = 0.0 if j == 0 else (length if j == H - 1 else ys[j])
+        A[k] = idx(j, i)
+    D = A + n
+    ring_b = np.stack([ox, oy, np.full(L, c)], axis=1)          # bottom bevel
+    ring_c = np.stack([ox, oy, np.full(L, top_z - c)], axis=1)  # top bevel
+    b_base = 2 * n
+    c_base = 2 * n + L
+    B = np.arange(L) + b_base
+    C = np.arange(L) + c_base
+    verts = np.vstack([bottom, top, ring_b, ring_c])
+
+    k = np.arange(L)
+    k1 = (k + 1) % L
+    rim = np.concatenate([
+        np.stack([A[k], A[k1], B[k1]], -1),     # bottom bevel facet
+        np.stack([A[k], B[k1], B[k]], -1),
+        np.stack([B[k], B[k1], C[k1]], -1),     # vertical wall
+        np.stack([B[k], C[k1], C[k]], -1),
+        np.stack([C[k], C[k1], D[k1]], -1),     # top bevel facet
+        np.stack([C[k], D[k1], D[k]], -1)])
+
+    faces = np.concatenate([bot, top_f, rim])
     return trimesh.Trimesh(vertices=verts, faces=faces, process=False)
+
+
+def grip_cylinder(radius, height, top_chamfer=0.0, n_theta=64):
+    """Build a short upright cylinder grip with a chamfered top edge.
+
+    A watertight vertical cylinder (axis Z, base on ``z = 0``) sized as an
+    easy-to-grasp knob — printed on its base it is just stacked rings, so it
+    needs no supports. The top outer edge is bevelled at 45° over
+    ``top_chamfer`` for comfort and a clean top layer. Place it by translating
+    so its base sits (slightly embedded) on the part it grips; the base disk is
+    capped so the cylinder is watertight on its own before that union.
+
+    Parameters
+    ----------
+    radius : float
+        Cylinder radius, in mm.
+    height : float
+        Cylinder height above its base, in mm.
+    top_chamfer : float, optional
+        45° bevel on the top rim, in mm (clamped to sensible bounds). ``0``
+        leaves a square top edge.
+    n_theta : int, optional
+        Facets around the cylinder. Defaults to ``64``.
+
+    Returns
+    -------
+    trimesh.Trimesh
+        The grip as a single watertight mesh with its base on ``z = 0``, built
+        with ``process=False``.
+    """
+    import trimesh
+
+    r = float(radius)
+    c = float(max(0.0, min(top_chamfer, r * 0.6, height * 0.6)))
+    thetas = np.linspace(0.0, 2 * math.pi, n_theta, endpoint=False)
+    ct, st = np.cos(thetas), np.sin(thetas)
+
+    def ring(rr, z):
+        return np.stack([rr * ct, rr * st, np.full(n_theta, z)], axis=1)
+
+    rings = [ring(r, 0.0), ring(r, height - c)]   # base, shoulder
+    if c > 0:
+        rings.append(ring(r - c, height))         # chamfered top rim
+    verts = np.vstack(rings)
+    top_r = r - c if c > 0 else r
+    apex = len(verts)                             # top centre
+    base_c = apex + 1                             # base centre
+    verts = np.vstack([verts, [[0, 0, height]], [[0, 0, 0.0]]])
+
+    I = np.arange(n_theta)
+    I2 = (I + 1) % n_theta
+    faces = [np.stack([I, I2, np.full(n_theta, base_c)], -1)]   # base disk
+    n_side = len(rings) - 1
+    for s in range(n_side):                       # walls + chamfer facet
+        b0, b1 = s * n_theta, (s + 1) * n_theta
+        faces.append(np.stack([b0 + I, b1 + I, b1 + I2], -1))
+        faces.append(np.stack([b0 + I, b1 + I2, b0 + I2], -1))
+    top0 = n_side * n_theta
+    faces.append(np.stack([top0 + I, np.full(n_theta, apex), top0 + I2], -1))
+    return trimesh.Trimesh(vertices=verts, faces=np.concatenate(faces),
+                           process=False)
 
 
 def dome_knob(radius, height, n_theta=48, n_phi=14):

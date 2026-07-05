@@ -136,11 +136,13 @@ bad inputs fail fast with a clear message.
 
 ### 🔤 Name & motif stamps (`playdoh_stamp.py`)
 
-A companion tool: a chunky slab with a grippy dome-knob handle that presses a
-kid's **name** (and/or an SVG motif) into the dough. Two imprint modes —
-`raised` (default; name pops up, engraved into a solid plateau, most
-print-robust) and `indented` (classic pressed-in seal). Exported **face-down,
-no supports**. Everything on the face is auto-mirrored so the dough reads right.
+A companion tool: a compact **~5 cm** slab with a short grippy **cylinder
+handle** (easy for a toddler) and **chamfered edges** (safer to hold, cleaner
+to print) that presses a kid's **name** (and/or an SVG motif) into the dough.
+Two imprint modes — `raised` (default; name pops up, engraved into a solid
+plateau, most print-robust) and `indented` (classic pressed-in seal). Exported
+**face-down, no supports**. Everything on the face is auto-mirrored so the
+dough reads right.
 
 ```bash
 # name stamp with a framing border, preview + STL
