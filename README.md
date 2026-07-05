@@ -32,7 +32,7 @@ chosen, print-verified design.
 
 | Ember — bees & flowers | Mikey — dinosaurs | Imogen — shapes |
 |:---:|:---:|:---:|
-| ![Ember](previews/preview_ember_bees_and_flowers.png) | ![Mikey](previews/preview_mikey_dinosaurs.png) | ![Imogen](previews/preview_imogen_shapes.png) |
+| ![Ember](previews/rollers/preview_ember_bees_and_flowers.png) | ![Mikey](previews/rollers/preview_mikey_dinosaurs.png) | ![Imogen](previews/rollers/preview_imogen_shapes.png) |
 
 *Previews show what the imprint looks like pressed flat into the dough (cream =
 surface, dark = indentation). The name reads lengthways along the roller.*
@@ -124,7 +124,7 @@ playdoh_stamp.py      the stamp generator: StampConfig + face mask + outputs
 svg_processing.py     reusable SVG → mask rasterizer + font loading
 mesh_utils.py         reusable mesh helpers (cylinder rollers + flat slab stamps)
 assets/               decoration SVGs + ATTRIBUTION.md
-previews/             example imprint previews (PNG)
+previews/             example imprint previews (PNG) — rollers/ and stamps/
 printable_files/      ready-to-slice STL/3MF files (rollers/ and stamps/)
 SKILL.md              full reference / how it works
 ```
