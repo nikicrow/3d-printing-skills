@@ -52,8 +52,10 @@ python playdoh_roller.py --name "Imogen" --theme shapes --preview --stl
 Outputs are named `preview_<name>_<theme>.png` and `roller_<name>_<theme>.stl`.
 
 > **Note:** the full collection's print-ready STLs are committed under
-> [`printable_files/`](printable_files). They're large (~60 MB each), so a clone
-> is hefty — or just regenerate any roller on demand with the command above.
+> [`printable_files/`](printable_files), split into
+> [`rollers/`](printable_files/rollers) and [`stamps/`](printable_files/stamps).
+> The rollers are large (~60 MB each), so a clone is hefty — or just regenerate
+> any roller on demand with the command above.
 
 ### Options
 
@@ -123,7 +125,7 @@ svg_processing.py     reusable SVG → mask rasterizer + font loading
 mesh_utils.py         reusable mesh helpers (cylinder rollers + flat slab stamps)
 assets/               decoration SVGs + ATTRIBUTION.md
 previews/             example imprint previews (PNG)
-printable_files/      ready-to-slice STL/3MF files for the whole collection
+printable_files/      ready-to-slice STL/3MF files (rollers/ and stamps/)
 SKILL.md              full reference / how it works
 ```
 
