@@ -87,7 +87,7 @@ looks great for toddlers (the name pops up out of the dough).
 | `--letter-height` | `8.5` | Cap height of the name, mm (tuned so names land ~5 cm wide) |
 | `--margin` | `6` | Solid border of plate around the content, mm |
 | `--thickness` | `4` | Solid slab thickness above the deepest relief, mm |
-| `--depth` | `2.0` | How deep the name is engraved / raised, mm |
+| `--depth` | `1.0` | How deep the name is engraved / raised, mm (deeper packs dough in and sticks) |
 | `--edge-chamfer` | `1.0` | 45° bevel on the plate's outer top/bottom edges, mm |
 | `--cylinder-radius` | `11` | Cylinder grip radius, mm (22 mm dia) |
 | `--cylinder-height` | `18` | Cylinder grip height, mm |
