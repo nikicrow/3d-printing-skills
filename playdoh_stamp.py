@@ -67,8 +67,9 @@ DEPENDENCIES
   * First layer   : slow it down; a short brim helps adhesion (essential in
                     'indented' mode where letters are small islands).
   * Material      : PLA is fine for Play-Doh (non-edible modelling compound).
-  * Depth/relief  : 2.0 mm default — deep enough for a clear dough impression,
-                    shallow enough to print fast and stay kid-safe.
+  * Depth/relief  : 1.0 mm default — enough for a clear dough impression while
+                    shallow enough that the dough releases cleanly (deeper, e.g.
+                    2 mm, packs dough into the letters and sticks).
 ----------------------------------------------------------------------------
 """
 
@@ -182,7 +183,7 @@ class StampConfig(BaseModel):
     letter_height_mm: float = Field(8.5, gt=0)
     margin_mm: float = Field(6.0, gt=0)
     thickness_mm: float = Field(4.0, gt=0)
-    depth_mm: float = Field(2.0, gt=0)
+    depth_mm: float = Field(1.0, gt=0)
     edge_chamfer_mm: float = Field(1.0, ge=0)
     # cylinder handle (default) — short, easy for a toddler to grasp
     cylinder_radius_mm: float = Field(11.0, gt=0)
