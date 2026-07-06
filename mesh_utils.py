@@ -25,7 +25,8 @@ relief pattern into printable geometry:
     edges: the stamp/plate primitive.
   * ``dome_knob`` — a parametric watertight squashed hemisphere grip handle.
   * ``grip_cylinder`` — a short upright cylinder grip with a chamfered top
-    edge (an easy-to-grasp toddler handle).
+    edge (an easy-to-grasp toddler handle), optionally raising a silhouette
+    mask (e.g. an initial letter) out of its top face.
 
 The displaced-cylinder construction is the efficient, watertight equivalent of
 "add a radial prism per raised pixel": grid vertices on raised texels sit at
@@ -449,7 +450,8 @@ def build_slab_relief(bottom_z, top_z, width, length, chamfer=0.0):
     return trimesh.Trimesh(vertices=verts, faces=faces, process=False)
 
 
-def grip_cylinder(radius, height, top_chamfer=0.0, n_theta=64):
+def grip_cylinder(radius, height, top_chamfer=0.0, n_theta=64,
+                  top_mask=None, top_relief=0.0, top_n_rings=None):
     """Build a short upright cylinder grip with a chamfered top edge.
 
     A watertight vertical cylinder (axis Z, base on ``z = 0``) sized as an
@@ -458,6 +460,13 @@ def grip_cylinder(radius, height, top_chamfer=0.0, n_theta=64):
     ``top_chamfer`` for comfort and a clean top layer. Place it by translating
     so its base sits (slightly embedded) on the part it grips; the base disk is
     capped so the cylinder is watertight on its own before that union.
+
+    With ``top_mask`` given, the flat top cap is replaced by a polar disk that
+    **raises the mask silhouette** (e.g. an initial letter) ``top_relief`` mm
+    out of the top face — the planar cousin of :func:`polar_disk_relief`. The
+    mask is read the right way up (looking down the +Z axis), so it is NOT
+    mirrored. Keep the silhouette within ~0.8·(radius − top_chamfer) so it
+    doesn't run into the rim.
 
     Parameters
     ----------
@@ -470,6 +479,16 @@ def grip_cylinder(radius, height, top_chamfer=0.0, n_theta=64):
         leaves a square top edge.
     n_theta : int, optional
         Facets around the cylinder. Defaults to ``64``.
+    top_mask : PIL.Image.Image or numpy.ndarray, optional
+        Square silhouette mask; truthy (``> 127``) pixels are raised out of the
+        top face. Sampled across the top disk in ``[-top_r, top_r]`` where
+        ``top_r = radius − top_chamfer``. ``None`` (default) leaves a flat top.
+    top_relief : float, optional
+        Height in mm that masked pixels bump out of the top. Ignored when
+        ``top_mask`` is ``None``.
+    top_n_rings : int, optional
+        Radial rings tessellating the relief top disk (finer = crisper). Auto
+        if ``None``.
 
     Returns
     -------
@@ -481,6 +500,8 @@ def grip_cylinder(radius, height, top_chamfer=0.0, n_theta=64):
 
     r = float(radius)
     c = float(max(0.0, min(top_chamfer, r * 0.6, height * 0.6)))
+    if top_mask is not None:
+        n_theta = max(n_theta, 128)               # finer facets for the letter
     thetas = np.linspace(0.0, 2 * math.pi, n_theta, endpoint=False)
     ct, st = np.cos(thetas), np.sin(thetas)
 
@@ -490,24 +511,63 @@ def grip_cylinder(radius, height, top_chamfer=0.0, n_theta=64):
     rings = [ring(r, 0.0), ring(r, height - c)]   # base, shoulder
     if c > 0:
         rings.append(ring(r - c, height))         # chamfered top rim
-    verts = np.vstack(rings)
     top_r = r - c if c > 0 else r
-    apex = len(verts)                             # top centre
-    base_c = apex + 1                             # base centre
-    verts = np.vstack([verts, [[0, 0, height]], [[0, 0, 0.0]]])
+    n_side = len(rings) - 1
+    top0 = n_side * n_theta                        # outer ring of the top cap
+
+    V = list(rings)
+    base_c = len(rings) * n_theta                  # base centre
+    V.append(np.array([[0, 0, 0.0]]))
 
     I = np.arange(n_theta)
     I2 = (I + 1) % n_theta
     faces = [np.stack([I, I2, np.full(n_theta, base_c)], -1)]   # base disk
-    n_side = len(rings) - 1
-    for s in range(n_side):                       # walls + chamfer facet
+    for s in range(n_side):                        # walls + chamfer facet
         b0, b1 = s * n_theta, (s + 1) * n_theta
         faces.append(np.stack([b0 + I, b1 + I, b1 + I2], -1))
         faces.append(np.stack([b0 + I, b1 + I2, b0 + I2], -1))
-    top0 = n_side * n_theta
-    faces.append(np.stack([top0 + I, np.full(n_theta, apex), top0 + I2], -1))
-    return trimesh.Trimesh(vertices=verts, faces=np.concatenate(faces),
-                           process=False)
+
+    if top_mask is None:
+        apex = base_c + 1
+        V.append(np.array([[0, 0, height]]))
+        faces.append(np.stack([top0 + I, np.full(n_theta, apex), top0 + I2],
+                              -1))
+    else:
+        # Relief top cap: interior rings (top_r -> 0) sharing the top rim ring,
+        # with masked pixels raised to z = height + top_relief.
+        M = np.asarray(top_mask) > 127
+        himg, wimg = M.shape
+        K = top_n_rings or max(12, int(top_r * 4))
+
+        def mask_z(x, y):
+            u = np.clip(((x + top_r) / (2 * top_r) * (wimg - 1)).astype(int),
+                        0, wimg - 1)
+            v = np.clip(((top_r - y) / (2 * top_r) * (himg - 1)).astype(int),
+                        0, himg - 1)
+            return np.where(M[v, u], height + top_relief, height)
+
+        int_base = base_c + 1                      # first interior-ring vertex
+        for k in range(1, K):
+            rk = top_r * (K - k) / K
+            x, y = rk * ct, rk * st
+            V.append(np.stack([x, y, mask_z(x, y)], axis=1))
+        cz = height + (top_relief if M[(himg - 1) // 2, (wimg - 1) // 2] else 0)
+        center_idx = int_base + (K - 1) * n_theta
+        V.append(np.array([[0.0, 0.0, cz]]))
+
+        def rbase(k):
+            return top0 if k == 0 else int_base + (k - 1) * n_theta
+
+        for k in range(K - 1):
+            b0, b1 = rbase(k), rbase(k + 1)
+            faces.append(np.stack([b0 + I, b1 + I, b1 + I2], -1))
+            faces.append(np.stack([b0 + I, b1 + I2, b0 + I2], -1))
+        bK = rbase(K - 1)
+        faces.append(np.stack([bK + I, np.full(n_theta, center_idx), bK + I2],
+                              -1))
+
+    return trimesh.Trimesh(vertices=np.vstack(V),
+                           faces=np.concatenate(faces), process=False)
 
 
 def dome_knob(radius, height, n_theta=48, n_phi=14):

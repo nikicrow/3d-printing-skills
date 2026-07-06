@@ -10,8 +10,9 @@ with a short, grippy **cylinder handle** on the back (easy for a toddler to
 grasp) and **chamfered edges** (safer to hold, cleaner to print), carrying a
 kid's **name** (parametric text) and/or an **SVG motif** on the stamping face.
 Kids press it into a flat slab of dough to stamp their creations with their
-name. Outputs a flat PNG preview of the dough imprint, or a printable STL of the
-actual stamp.
+name. The name's **initial letter is raised on the top of the cylinder handle**
+(readable from above) so it's easy to tell whose stamp is whose. Outputs a flat
+PNG preview of the dough imprint, or a printable STL of the actual stamp.
 
 Companion to [[playdoh-roller]] / [[playdoh-roller-v2]] — it **reuses the same**
 chunky fonts, the same open-licensed silhouette icons in `assets/` (see
@@ -91,6 +92,9 @@ looks great for toddlers (the name pops up out of the dough).
 | `--edge-chamfer` | `1.0` | 45° bevel on the plate's outer top/bottom edges, mm |
 | `--cylinder-radius` | `11` | Cylinder grip radius, mm (22 mm dia) |
 | `--cylinder-height` | `18` | Cylinder grip height, mm |
+| `--no-initial` | off | Don't raise the name's initial letter on the handle top |
+| `--initial` | — | Override the handle-top letter (default: name's first char) |
+| `--top-relief` | `1.2` | How far the handle-top initial bumps out, mm |
 | `--knob-radius` | `11` | Dome-knob (or bar) radius, mm (`--handle knob`/`bar`) |
 | `--knob-squash` | `0.75` | Dome height = radius × squash (flatter = comfier) |
 | `--icon-fraction` | `0.9` | Icon height relative to letter height |
@@ -163,8 +167,12 @@ generic work is delegated to the shared, project-agnostic modules:
   bottom-bevel → vertical wall → top-bevel (safer + no elephant-foot).
 - **Cylinder grip** (`mesh_utils.grip_cylinder`): a short upright cylinder
   (default 22 mm dia × 18 mm) with a chamfered top edge — prints as stacked
-  rings, no supports, easy for a toddler to grasp. `dome_knob` (hemisphere) and
-  a horizontal `bar` remain as alternatives. `bar` builds a horizontal
+  rings, no supports, easy for a toddler to grasp. Its flat top optionally
+  **raises the name's initial letter** (`top_mask` / `top_relief`, default 1.2
+  mm) via a polar relief disk that shares the top rim — the planar cousin of the
+  roller's `polar_disk_relief`, read the right way up (not mirrored). `dome_knob`
+  (hemisphere) and a horizontal `bar` remain as alternatives. `bar` builds a
+  horizontal
   `trimesh` capsule resting on the plate.
 - **Assembly**: the plate and handle are concatenated (they overlap slightly);
   the slicer unions overlapping solids at slice time — the same approach the
