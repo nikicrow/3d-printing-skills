@@ -146,6 +146,14 @@ class StampConfig(BaseModel):
         handle, cleaner to print). ``0`` keeps square edges.
     cylinder_radius_mm, cylinder_height_mm : float
         Size of the default cylinder grip handle, in mm.
+    top_initial : bool
+        Raise the name's initial letter out of the top of the cylinder handle
+        (identifies whose stamp it is). Only applies to the cylinder handle.
+    top_initial_char : str or None
+        Override the letter raised on the handle top (default: first char of
+        ``name``, uppercased).
+    top_relief_mm : float
+        How far the initial letter bumps out of the handle top, in mm.
     knob_radius_mm : float
         Dome-knob (or bar) radius, in mm (``handle="knob"``/``"bar"``).
     knob_squash : float
@@ -188,6 +196,10 @@ class StampConfig(BaseModel):
     # cylinder handle (default) — short, easy for a toddler to grasp
     cylinder_radius_mm: float = Field(11.0, gt=0)
     cylinder_height_mm: float = Field(18.0, gt=0)
+    # raised initial letter on the handle top (identifies whose stamp it is)
+    top_initial: bool = True
+    top_initial_char: Optional[str] = Field(None, min_length=1, max_length=1)
+    top_relief_mm: float = Field(1.2, gt=0)
     # dome-knob handle (alternative)
     knob_radius_mm: float = Field(11.0, gt=0)
     knob_squash: float = Field(0.75, gt=0, le=1.0)
@@ -273,6 +285,22 @@ def _icon_mask(cfg, ref, height_px):
     if height_px >= 48:
         mask = mask.filter(ImageFilter.MaxFilter(3))
     return mask
+
+
+def _initial_mask(cfg, top_r):
+    """Square mask of the name's initial letter, sized to the handle-top disk.
+
+    The letter is centred and ~60 % of the disk diameter so it clears the rim.
+    Read the right way up from above (not mirrored — the handle top is not a
+    stamping surface).
+    """
+    ch = (cfg.top_initial_char or cfg.name[0]).upper()
+    side = max(24, int(2 * top_r * cfg.ppm))
+    letter_h_px = 0.60 * 2 * top_r * cfg.ppm
+    img, _ = _render_text_mask(ch, letter_h_px)
+    sq = Image.new("L", (side, side), 0)
+    sq.paste(img, ((side - img.width) // 2, (side - img.height) // 2), img)
+    return sq
 
 
 def build_face(cfg):
@@ -432,8 +460,13 @@ def make_stl(cfg):
     cx, cy = pw / 2.0, pl / 2.0
     embed = 0.8                                # merge depth into the plate
     if cfg.handle == "cylinder":
+        tc = min(2.0, cfg.cylinder_radius_mm * 0.35)     # top-rim chamfer
+        top_mask = None
+        if cfg.top_initial and cfg.name:
+            top_mask = _initial_mask(cfg, cfg.cylinder_radius_mm - tc)
         grip = grip_cylinder(cfg.cylinder_radius_mm, cfg.cylinder_height_mm,
-                             top_chamfer=min(2.0, cfg.cylinder_radius_mm * 0.35))
+                             top_chamfer=tc, top_mask=top_mask,
+                             top_relief=cfg.top_relief_mm)
         grip.apply_translation([cx, cy, top_z - embed])
         parts.append(grip)
     elif cfg.handle == "knob":
@@ -484,6 +517,9 @@ def config_from_args(args):
         edge_chamfer_mm=args.edge_chamfer,
         cylinder_radius_mm=args.cylinder_radius,
         cylinder_height_mm=args.cylinder_height,
+        top_initial=not args.no_initial,
+        top_initial_char=args.initial,
+        top_relief_mm=args.top_relief,
         knob_radius_mm=args.knob_radius,
         knob_squash=args.knob_squash,
         icon_fraction=args.icon_fraction,
@@ -526,6 +562,13 @@ def main():
                    default=d.cylinder_radius_mm)
     p.add_argument("--cylinder-height", type=float,
                    default=d.cylinder_height_mm)
+    p.add_argument("--no-initial", action="store_true",
+                   help="don't raise the name's initial letter on the handle top")
+    p.add_argument("--initial", default=None,
+                   help="letter to raise on the handle top (default: name's "
+                        "first letter)")
+    p.add_argument("--top-relief", type=float, default=d.top_relief_mm,
+                   help="how far the handle-top initial bumps out, mm")
     p.add_argument("--knob-radius", type=float, default=d.knob_radius_mm)
     p.add_argument("--knob-squash", type=float, default=d.knob_squash)
     p.add_argument("--icon-fraction", type=float, default=d.icon_fraction)
