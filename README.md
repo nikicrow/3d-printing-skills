@@ -121,20 +121,21 @@ To use it: roll the barrel over your Play-Doh by hand. 🎉
 ```
 playdoh_roller.py     the roller generator: RollerConfig + heightmap + outputs
 playdoh_stamp.py      the stamp generator: StampConfig + face mask + outputs
+playdoh_scraper.py    the scraper generator: ScraperConfig + wedge + name
 svg_processing.py     reusable SVG → mask rasterizer + font loading
-mesh_utils.py         reusable mesh helpers (cylinder rollers + flat slab stamps)
+mesh_utils.py         reusable mesh helpers (rollers, slab stamps, wedge scrapers)
 assets/               decoration SVGs + ATTRIBUTION.md
-previews/             example imprint previews (PNG) — rollers/ and stamps/
-printable_files/      ready-to-slice STL/3MF files (rollers/ and stamps/)
+previews/             example previews (PNG) — rollers/, stamps/, scrapers/
+printable_files/      ready-to-slice STLs (rollers/, stamps/, scrapers/)
 SKILL.md              full reference / how it works
 ```
 
-`svg_processing.py` and `mesh_utils.py` are deliberately project-agnostic. The
-stamp generator is the first tool to reuse them: `playdoh_stamp.py` shares the
-exact same SVG rasterization, chunky fonts and displaced-grid meshing, adding
-only stamp-specific layout. All tunable parameters live in one validated
-pydantic config per tool (`RollerConfig` / `StampConfig`, `extra="forbid"`), so
-bad inputs fail fast with a clear message.
+`svg_processing.py` and `mesh_utils.py` are deliberately project-agnostic; the
+stamp and scraper generators reuse them (same SVG rasterization, chunky fonts,
+and watertight no-boolean meshing), adding only their own layout. All tunable
+parameters live in one validated pydantic config per tool (`RollerConfig` /
+`StampConfig` / `ScraperConfig`, `extra="forbid"`), so bad inputs fail fast with
+a clear message.
 
 ### 🔤 Name & motif stamps (`playdoh_stamp.py`)
 
@@ -156,6 +157,22 @@ python playdoh_stamp.py --name "Ember" --border --preview --stl
 # single-motif picture stamp from any approved SVG on a round plate
 python playdoh_stamp.py --svg assets/flower.svg --shape circle --stl
 ```
+
+### 🧹 Name scrapers (`playdoh_scraper.py`)
+
+A toddler dough scraper: from above a rectangle, from the side a gentle
+low-gradient **wedge** rising from a thin **blunt** front edge (not a blade) up
+to a thicker back, with the kid's **name raised on the back platform** (mirrored
+so it reads while you scrape). Flat base, **prints support-free**. Print-verified
+and effective on real Play-Doh. Locked-in size **120 × 60 mm**.
+
+```bash
+python playdoh_scraper.py --name "Ember" --preview --stl
+```
+
+The raised name is the only geometry above the platform, so a single **filament
+change at Z = back_height** (printed on export) colours exactly the name — no
+AMS needed.
 
 ---
 
