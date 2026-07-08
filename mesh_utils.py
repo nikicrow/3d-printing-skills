@@ -23,6 +23,9 @@ relief pattern into printable geometry:
   * ``build_slab_relief`` — extrude a relief heightmap into a flat watertight
     slab (bumpy underside, flat top), with optional 45° chamfers on the outer
     edges: the stamp/plate primitive.
+  * ``build_prism_between`` — a watertight solid between a bottom and a top
+    heightfield over a rectangular grid (e.g. a wedge/scraper: flat base,
+    shaped/ramped top with a raised name).
   * ``dome_knob`` — a parametric watertight squashed hemisphere grip handle.
   * ``grip_cylinder`` — a short upright cylinder grip with a chamfered top
     edge (an easy-to-grasp toddler handle), optionally raising a silhouette
@@ -447,6 +450,79 @@ def build_slab_relief(bottom_z, top_z, width, length, chamfer=0.0):
         np.stack([C[k], D[k1], D[k]], -1)])
 
     faces = np.concatenate([bot, top_f, rim])
+    return trimesh.Trimesh(vertices=verts, faces=faces, process=False)
+
+
+def build_prism_between(bottom_z, top_z, width, length):
+    """Watertight solid between a bottom and a top heightfield.
+
+    General rectangular-grid prism: the bottom surface follows ``bottom_z`` and
+    the top follows ``top_z``, closed by four vertical side walls. Both are
+    single-valued height fields over ``[0, width] x [0, length]`` in X/Y, so any
+    shape expressible as "one surface below, one above" — a wedge/scraper (flat
+    base, ramped top), an embossed plate, a terrain tile — comes out as one
+    watertight solid with no booleans. Built in print orientation (base on the
+    bed), so a flat ``bottom_z`` prints support-free.
+
+    Parameters
+    ----------
+    bottom_z : float or numpy.ndarray
+        Underside height in mm — a scalar (broadcast) or an ``(H, W)`` array on
+        the same grid as ``top_z``.
+    top_z : numpy.ndarray, shape (H, W)
+        Top-surface height in mm at each grid node. Axis 0 (rows) runs along
+        ``length`` (Y), axis 1 (columns) along ``width`` (X). Defines the grid.
+    width, length : float
+        Plate extents in mm along X and Y.
+
+    Returns
+    -------
+    trimesh.Trimesh
+        The solid as a single watertight mesh, built with ``process=False``
+        (topology guarantees watertightness; normal winding is left for the
+        slicer to auto-repair on import).
+    """
+    import trimesh
+
+    top_z = np.asarray(top_z, dtype=float)
+    H, Wg = top_z.shape
+    bottom_z = np.broadcast_to(np.asarray(bottom_z, dtype=float), (H, Wg))
+    xs = np.linspace(0.0, width, Wg)
+    ys = np.linspace(0.0, length, H)
+    gx, gy = np.meshgrid(xs, ys)
+
+    n = H * Wg
+    bottom = np.stack([gx.ravel(), gy.ravel(), bottom_z.ravel()], axis=1)
+    top = np.stack([gx.ravel(), gy.ravel(), top_z.ravel()], axis=1)
+    verts = np.vstack([bottom, top])            # [0:n]=bottom, [n:2n]=top
+
+    def idx(j, i):
+        return j * Wg + i
+
+    J, I = np.meshgrid(np.arange(H - 1), np.arange(Wg - 1), indexing="ij")
+    a, b = idx(J, I), idx(J, I + 1)
+    cc, d = idx(J + 1, I), idx(J + 1, I + 1)
+
+    bot = np.concatenate([                       # bottom surface (normals -Z)
+        np.stack([a, b, d], -1).reshape(-1, 3),
+        np.stack([a, d, cc], -1).reshape(-1, 3)])
+    top_f = np.concatenate([                      # top surface (normals +Z)
+        np.stack([a + n, d + n, b + n], -1).reshape(-1, 3),
+        np.stack([a + n, cc + n, d + n], -1).reshape(-1, 3)])
+
+    walls = []
+    for j in (0, H - 1):
+        i = np.arange(Wg - 1)
+        b0, b1 = idx(j, i), idx(j, i + 1)
+        walls.append(np.stack([b0, b1, b1 + n], -1))
+        walls.append(np.stack([b0, b1 + n, b0 + n], -1))
+    for i in (0, Wg - 1):
+        j = np.arange(H - 1)
+        b0, b1 = idx(j, i), idx(j + 1, i)
+        walls.append(np.stack([b0, b1, b1 + n], -1))
+        walls.append(np.stack([b0, b1 + n, b0 + n], -1))
+
+    faces = np.concatenate([bot, top_f] + walls)
     return trimesh.Trimesh(vertices=verts, faces=faces, process=False)
 
 
