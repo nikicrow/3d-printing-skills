@@ -24,7 +24,9 @@ print-verified on the Bambu Lab A1.
 
 - Script: `C:\Users\nikil\3d-printed-playdoh-roller\playdoh_scraper.py`
   (git mirror: `3d-printing-skills\playdoh_scraper.py`)
-- Outputs are written next to the script, regardless of the working directory.
+- Outputs are auto-filed next to the script, regardless of the working
+  directory: previews go to `previews\scrapers\` and STLs to
+  `printable_files\scrapers\` (the folders are created automatically).
 
 ## Dependencies
 
@@ -70,8 +72,8 @@ At the locked-in 120 × 60 mm it is ~14°.
 
 ### Output file naming
 
-- Preview: `preview_scraper_<name>.png`
-- STL: `scraper_<name>.stl`
+- Preview: `previews/scrapers/preview_scraper_<name>.png`
+- STL: `printable_files/scrapers/scraper_<name>.stl`
 
 ## Name orientation
 

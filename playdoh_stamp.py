@@ -93,6 +93,18 @@ from svg_processing import load_font, rasterize_svg
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSET_DIR = os.path.join(OUT_DIR, "assets")
 
+# Generated outputs are auto-filed into per-tool subfolders so the repo root
+# stays tidy: previews/stamps/*.png and printable_files/stamps/*.stl.
+PREVIEW_SUBDIR = os.path.join("previews", "stamps")
+PRINT_SUBDIR = os.path.join("printable_files", "stamps")
+
+
+def _out_path(out_dir, subdir, filename):
+    """Return ``<out_dir>/<subdir>/<filename>``, creating the folder if needed."""
+    dest = os.path.join(out_dir, subdir)
+    os.makedirs(dest, exist_ok=True)
+    return os.path.join(dest, filename)
+
 # Play-Doh-ish preview colours (shared look with the roller previews)
 CREAM = (245, 232, 205)        # dough surface
 IMPRINT = (150, 120, 80)       # pressed / shadowed areas
@@ -410,7 +422,8 @@ def make_preview(cfg):
              ha="center", fontsize=10, style="italic")
     fig.subplots_adjust(top=0.90, bottom=0.13)
 
-    out = os.path.join(cfg.out_dir, f"preview_stamp_{cfg.safe_name}.png")
+    out = _out_path(cfg.out_dir, PREVIEW_SUBDIR,
+                    f"preview_stamp_{cfg.safe_name}.png")
     fig.savefig(out, facecolor="white")
     plt.close(fig)
     print(f"[preview] font={font_name}  plate={pw:.0f}x{pl:.0f}mm  {W}x{H}px")
@@ -487,7 +500,8 @@ def make_stl(cfg):
 
     combined = trimesh.util.concatenate(parts) if len(parts) > 1 else plate
 
-    out = os.path.join(cfg.out_dir, f"stamp_{cfg.safe_name}{cfg.suffix}.stl")
+    out = _out_path(cfg.out_dir, PRINT_SUBDIR,
+                    f"stamp_{cfg.safe_name}{cfg.suffix}.stl")
     combined.export(out)
     wt = "watertight" if plate.is_watertight else "plate NOT watertight"
     print(f"[stl] font={font_name}  plate={pw:.0f}x{pl:.0f}mm  "

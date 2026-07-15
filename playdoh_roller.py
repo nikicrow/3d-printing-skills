@@ -91,6 +91,18 @@ from svg_processing import load_font, rasterize_svg
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSET_DIR = os.path.join(OUT_DIR, "assets")
 
+# Generated outputs are auto-filed into per-tool subfolders so the repo root
+# stays tidy: previews/rollers/*.png and printable_files/rollers/*.stl.
+PREVIEW_SUBDIR = os.path.join("previews", "rollers")
+PRINT_SUBDIR = os.path.join("printable_files", "rollers")
+
+
+def _out_path(out_dir, subdir, filename):
+    """Return ``<out_dir>/<subdir>/<filename>``, creating the folder if needed."""
+    dest = os.path.join(out_dir, subdir)
+    os.makedirs(dest, exist_ok=True)
+    return os.path.join(dest, filename)
+
 # Play-Doh-ish preview colours
 CREAM = (245, 232, 205)        # background (dough surface)
 IMPRINT = (150, 120, 80)       # indentation colour
@@ -545,9 +557,8 @@ def make_preview(cfg):
     fig.text(0.5, 0.015, caption, ha="center", fontsize=10, style="italic")
     fig.subplots_adjust(top=0.90, bottom=0.12)
 
-    out = os.path.join(
-        cfg.out_dir,
-        f"preview_{cfg.safe_name}_{cfg.theme}{cfg.suffix}.png")
+    out = _out_path(cfg.out_dir, PREVIEW_SUBDIR,
+                    f"preview_{cfg.safe_name}_{cfg.theme}{cfg.suffix}.png")
     fig.savefig(out, facecolor="white")
     plt.close(fig)
     print(f"[preview] font={font_name}  surface={W}x{H}px  "
@@ -646,9 +657,8 @@ def make_stl(cfg):
     # there are no overhangs and the round body never rests on the bed.
     stand_upright_on_end(combined)
 
-    out = os.path.join(
-        cfg.out_dir,
-        f"roller_{cfg.safe_name}_{cfg.theme}{cfg.suffix}.stl")
+    out = _out_path(cfg.out_dir, PRINT_SUBDIR,
+                    f"roller_{cfg.safe_name}_{cfg.theme}{cfg.suffix}.stl")
     combined.export(out)
     wt = "watertight" if combined.is_watertight else "NOT watertight"
     print(f"[stl] font={font_name}  decorations={n_deco}  "

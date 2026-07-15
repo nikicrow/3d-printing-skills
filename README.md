@@ -1,41 +1,18 @@
-# 🎨 Play-Doh Roller Generator
+# 🎨 Play-Doh Printing Toolkit
 
-Make your own **personalized Play-Doh / clay texture rollers** — a cylinder with
-a kid's name embossed lengthways and a themed pattern of cute decorations
-(bees & flowers, dinosaurs, shapes, cats, fruits, trucks) wrapped around it. Roll
-it over Play-Doh and it stamps the name and pictures into the dough.
+Three small, parametric Python generators that turn a **kid's name** (and a
+theme) into printable 3D models for Play-Doh / clay play. Each one produces a
+**flat PNG preview** of the dough imprint and a **print-ready STL**.
 
-One small Python script produces both a **flat PNG preview** of the imprint and
-a **print-ready STL**.
+| Tool | What it makes | Script |
+|---|---|---|
+| 🌀 **Roller** | A barrel with the name embossed lengthways + a themed pattern (bees, dinos, shapes, cats, fruits, trucks) that rolls a repeating imprint into the dough. | [`playdoh_roller.py`](playdoh_roller.py) |
+| 🔤 **Stamp** | A compact ~5 cm slab with a grippy cylinder handle that presses the name (and/or an icon) into the dough. Initial raised on the handle top. | [`playdoh_stamp.py`](playdoh_stamp.py) |
+| 🧹 **Scraper** | A wide, low, toddler-safe wedge with a blunt front edge and the name raised on the back platform. | [`playdoh_scraper.py`](playdoh_scraper.py) |
 
-> ✅ **Print-verified.** The Ember / bees-and-flowers roller has been printed on
-> a Bambu Lab printer (solid, upright, no handles) and came out great — crisp
-> embossed name and decorations. The full pipeline (SVG icons → heightmap →
-> upright STL → print) is confirmed end-to-end.
-
----
-
-## Relief direction
-
-This is the **original (v1)** roller: features stand **out** of the barrel and
-press **down** into the dough, leaving an **indented** imprint. ✅ This is the
-chosen, print-verified design.
-
-> An alternative **v2** (engraved roller → *raised* dough imprint, via
-> `--engrave`) was tried too, but after printing both, the original was
-> preferred. The v2 files are kept under [`archive/v2/`](archive/v2) for
-> reference. The `--engrave` flag still works if you ever want to regenerate it.
-
----
-
-## Examples
-
-| Ember — bees & flowers | Mikey — dinosaurs | Imogen — shapes |
-|:---:|:---:|:---:|
-| ![Ember](previews/rollers/preview_ember_bees_and_flowers.png) | ![Mikey](previews/rollers/preview_mikey_dinosaurs.png) | ![Imogen](previews/rollers/preview_imogen_shapes.png) |
-
-*Previews show what the imprint looks like pressed flat into the dough (cream =
-surface, dark = indentation). The name reads lengthways along the roller.*
+> ✅ **All three are print-verified** on a Bambu Lab printer. A **v2 roller**
+> (engraved → *raised* dough imprint, via `--engrave`) was also tried; the
+> original was preferred, so v2 lives in [`archive/`](archive/).
 
 ---
 
@@ -43,157 +20,120 @@ surface, dark = indentation). The name reads lengthways along the roller.*
 
 ```bash
 # install dependencies (one time)
-pip install trimesh numpy pillow matplotlib svgpathtools --break-system-packages
+pip install trimesh numpy pillow matplotlib svgpathtools pydantic --break-system-packages
 
-# make a preview PNG + printable STL
-python playdoh_roller.py --name "Imogen" --theme shapes --preview --stl
+# make a preview + printable STL (each tool takes --name; roller also takes --theme)
+python playdoh_roller.py  --name "Imogen" --theme shapes --preview --stl
+python playdoh_stamp.py    --name "Imogen" --preview --stl
+python playdoh_scraper.py  --name "Imogen" --preview --stl
 ```
 
-Outputs are named `preview_<name>_<theme>.png` and `roller_<name>_<theme>.stl`.
+`--preview` is fast (no `trimesh`); `--stl` builds the mesh and takes longer.
+Outputs are **auto-filed** into the folders below — no matter which directory
+you run from — so the repo root stays tidy.
 
-> **Note:** the full collection's print-ready STLs are committed under
-> [`printable_files/`](printable_files), split into
-> [`rollers/`](printable_files/rollers) and [`stamps/`](printable_files/stamps).
-> The rollers are large (~60 MB each), so a clone is hefty — or just regenerate
-> any roller on demand with the command above.
-
-### Options
-
-| Flag | Default | Meaning |
-|---|---|---|
-| `--name` | `Ember` | Name embossed lengthways along the roller |
-| `--theme` | `bees_and_flowers` | `bees_and_flowers`, `dinosaurs`, `shapes`, `cats`, `fruits`, `trucks` |
-| `--preview` | – | Write the flat imprint PNG |
-| `--stl` | – | Write the printable STL |
-| `--radius` | `17.5` | Barrel radius in mm (35 mm diameter) |
-| `--length` | `90` | Imprint length in mm |
-| `--emboss` | `1.8` | How far features rise above the barrel, mm |
-| `--top-stamp` | off | Raise the theme's first icon out of the **top end** → doubles as a press-stamp |
-| `--stamp-relief` | `2.5` | Height of the top-end stamp icon, mm |
-| `--ppm` | `12` | Heightmap resolution (px/mm); ≥10 keeps detail crisp |
-| `--handles` | off | Add grip stubs at both ends (simple barrel by default) |
-
-> 🐝 **Top-end stamp:** `--top-stamp` raises the theme's signature icon (bee /
-> T-Rex / etc.) ~2.5 mm out of the roller's **up** end, so the end works as a
-> cute press-stamp. The bed end stays flat. It's part of the same watertight
-> solid (STL only; not shown in the flat preview).
+Per-tool reference docs (all flags, printing settings, design constraints):
+[`SKILL_roller.md`](SKILL_roller.md) · [`SKILL_stamp.md`](SKILL_stamp.md) ·
+[`SKILL_scraper.md`](SKILL_scraper.md) · [`SKILL_roller_v2.md`](SKILL_roller_v2.md)
 
 ---
 
-## Themes
+## Repo structure
 
-| Theme | Decorations |
-|---|---|
-| 🐝 `bees_and_flowers` | bee + flower |
-| 🦖 `dinosaurs` | T-Rex + brontosaurus |
-| ⭐ `shapes` | circle, square, triangle, star, heart |
-| 🐱 `cats` | cat face + paw print |
-| 🍎 `fruits` | apple + banana |
-| 🚚 `trucks` | delivery truck + car |
+```
+playdoh_roller.py      roller generator   (RollerConfig)
+playdoh_stamp.py       stamp generator    (StampConfig)
+playdoh_scraper.py     scraper generator  (ScraperConfig)
+svg_processing.py      shared: SVG → mask rasterizer + font loading
+mesh_utils.py          shared: watertight mesh helpers (no booleans, no supports)
 
-Decorations are **real, open-licensed silhouette icons** (not hand-drawn),
-rasterized from the SVGs in [`assets/`](assets) — see
-[`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md) for sources & licenses. Adding a
-new theme is just dropping a couple of bold SVGs in `assets/` and adding one line
-to the `THEMES` dict (see [`SKILL.md`](SKILL.md)).
+assets/                decoration SVGs + ATTRIBUTION.md
+previews/              generated PNG previews  →  rollers/  stamps/  scrapers/
+printable_files/       generated STL / 3MF     →  rollers/  stamps/  scrapers/
+archive/               the v2 (engraved) roller experiment
+
+SKILL_roller.md        per-tool reference docs (copies of the registered skills)
+SKILL_stamp.md
+SKILL_scraper.md
+SKILL_roller_v2.md
+README.md              this file
+sync.sh                keep the three copies of this project in step (see below)
+```
+
+Every tool stores its tunable parameters in one validated **pydantic `*Config`**
+(`extra="forbid"`, so a typo'd flag fails fast with a clear message) and
+delegates geometry to the two shared, project-agnostic modules. Adding a tool =
+one new `*.py` with its own `Config` + a couple of shared calls.
+
+---
+
+## Adding a new name
+
+Just pass `--name`. That's it — the preview and STL are named after it and land
+in the right subfolder automatically:
+
+```bash
+python playdoh_roller.py --name "Freddie" --theme dinosaurs --preview --stl
+```
+
+To regenerate the whole roller collection at once, see
+[`_batch.sh`](_batch.sh).
+
+## Adding a new roller theme
+
+1. Find two **bold, chunky silhouette SVGs** (one per decoration). Solid emoji
+   sets work best — e.g. Iconify: `https://api.iconify.design/noto/<name>.svg`.
+2. Drop them in [`assets/`](assets/) and record the source in
+   [`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md).
+3. Add one line to the `THEMES` dict near the top of
+   [`playdoh_roller.py`](playdoh_roller.py):
+   `"robots": [("robot_a.svg", "evenodd"), ("robot_b.svg", "union")]`
+   (`union` for multicolour emoji, `evenodd` for single-colour icons). The
+   `--theme` choices update automatically.
+4. Test with `--preview` first; bump `--ppm` if a detailed icon looks blobby.
+
+Full guidance is in [`SKILL_roller.md`](SKILL_roller.md).
 
 ---
 
 ## Printing (Bambu Studio)
 
-The STL is exported **standing upright on its end** — drop it straight on the
-plate, no rotation needed.
-
-- **Orientation:** upright (axis vertical). Every layer is a ring with the relief
-  on its outer wall → **no supports, no overhangs**.
-- **Layer height:** 0.15 mm ("Fine") for crisp letters; 0.2 mm works too.
-- **Infill:** 40%, with 3+ walls so features are fully solid.
-- **Adhesion:** Engineering plate + a **brim** (the footprint is just a Ø35 mm
-  circle); slow the first layer.
-- **Material:** PLA (PETG for durability).
-
-To use it: roll the barrel over your Play-Doh by hand. 🎉
+All models export **already oriented for support-free printing** (rollers stand
+upright on an end; stamps print face-down; scrapers sit flat). 0.15 mm layers,
+40 % infill, 3+ walls, brim for the small footprints, PLA (PETG for durability).
+Per-tool specifics are in each `SKILL_*.md`.
 
 ---
 
-## What's in here
+## How this project is kept in sync
 
-```
-playdoh_roller.py     the roller generator: RollerConfig + heightmap + outputs
-playdoh_stamp.py      the stamp generator: StampConfig + face mask + outputs
-playdoh_scraper.py    the scraper generator: ScraperConfig + wedge + name
-svg_processing.py     reusable SVG → mask rasterizer + font loading
-mesh_utils.py         reusable mesh helpers (rollers, slab stamps, wedge scrapers)
-assets/               decoration SVGs + ATTRIBUTION.md
-previews/             example previews (PNG) — rollers/, stamps/, scrapers/
-printable_files/      ready-to-slice STLs (rollers/, stamps/, scrapers/)
-SKILL.md              full reference / how it works
-```
+This project lives in **three places** (a legacy of how the skills are wired):
 
-`svg_processing.py` and `mesh_utils.py` are deliberately project-agnostic; the
-stamp and scraper generators reuse them (same SVG rasterization, chunky fonts,
-and watertight no-boolean meshing), adding only their own layout. All tunable
-parameters live in one validated pydantic config per tool (`RollerConfig` /
-`StampConfig` / `ScraperConfig`, `extra="forbid"`), so bad inputs fail fast with
-a clear message.
+1. **Working copy** (source of truth, where outputs are written) — this folder,
+   `C:\Users\nikil\3d-printed-playdoh-roller\`.
+2. **Git mirror** — `3d-printing-skills\` (the versioned repo).
+3. **Registered Claude skills** — `~/.claude/skills/playdoh-*/SKILL.md` (the
+   frontmatter here is what makes each skill trigger; treat these as the
+   authoritative doc source).
 
-### 🔤 Name & motif stamps (`playdoh_stamp.py`)
+Editing in more than one place by hand is what let them drift. Instead:
 
-A companion tool: a compact **~5 cm** slab with a short grippy **cylinder
-handle** (easy for a toddler) and **chamfered edges** (safer to hold, cleaner
-to print) that presses a kid's **name** (and/or an SVG motif) into the dough.
-The name's **initial letter is raised on the handle top** so you can tell whose
-stamp is whose at a glance.
-Two imprint modes — `raised` (default; name pops up, engraved into a solid
-plateau, most print-robust) and `indented` (classic pressed-in seal). Exported
-**face-down, no supports**. Everything on the face is auto-mirrored so the
-dough reads right.
+- **Change code / assets** → edit them here in the working copy.
+- **Change a skill doc** → edit the registered `~/.claude/skills/<tool>/SKILL.md`.
+- Then run **[`sync.sh`](sync.sh)** once — it copies the scripts + assets out to
+  the git mirror and pulls the registered `SKILL.md` files back in as the
+  consistently-named `SKILL_<tool>.md` copies (here and in the mirror), so all
+  three locations match.
 
 ```bash
-# name stamp with a framing border, preview + STL
-python playdoh_stamp.py --name "Ember" --border --preview --stl
-
-# optional: add a little icon above the name (--icon), or make a
-# single-motif picture stamp from any approved SVG on a round plate
-python playdoh_stamp.py --svg assets/flower.svg --shape circle --stl
+bash sync.sh
 ```
-
-### 🧹 Name scrapers (`playdoh_scraper.py`)
-
-A toddler dough scraper: from above a rectangle, from the side a gentle
-low-gradient **wedge** rising from a thin **blunt** front edge (not a blade) up
-to a thicker back, with the kid's **name raised on the back platform** (mirrored
-so it reads while you scrape). Flat base, **prints support-free**. Print-verified
-and effective on real Play-Doh. Locked-in size **120 × 60 mm**.
-
-```bash
-python playdoh_scraper.py --name "Ember" --preview --stl
-```
-
-The raised name is the only geometry above the platform, so a single **filament
-change at Z = back_height** (printed on export) colours exactly the name — no
-AMS needed.
-
----
-
-## How it works (short version)
-
-1. The name (rotated to run lengthways) and the themed decorations are rendered
-   into a 2D grayscale **heightmap** of the unrolled cylinder surface.
-2. Decorations are placed on a seeded grid that **tiles cleanly** across the
-   roll seam, alternating icons so it looks natural but repeatable.
-3. For the STL, the heightmap is wrapped onto a cylinder: raised pixels push the
-   surface **outward** (so they press *into* the dough), over a solid core, and
-   the whole thing is stood upright for printing.
-
-Full details — including the pure-Python SVG rasterizer (no native cairo needed)
-— are in [`SKILL.md`](SKILL.md).
 
 ---
 
 ## Credits
 
-Decoration icons from open icon sets (Game-icons.net, Google Noto Emoji,
-Material Design Icons, Microsoft Fluent Emoji, Ionicons, Teenyicons) via the
-[Iconify](https://iconify.design) API. Per-icon sources and licenses are listed
-in [`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md).
+Decoration icons are open-licensed silhouettes (Game-icons.net, Google Noto
+Emoji, Material Design Icons, Microsoft Fluent Emoji, Ionicons) via the
+[Iconify](https://iconify.design) API. Per-icon sources and licenses:
+[`assets/ATTRIBUTION.md`](assets/ATTRIBUTION.md).

@@ -5,6 +5,12 @@ __pycache__/
 .venv/
 venv/
 
-# Generated outputs (regenerate with playdoh_roller.py)
+# Stray flat outputs at the repo root (generators now auto-file into
+# previews/<tool>/ and printable_files/<tool>/, which ARE tracked). These
+# patterns just catch anything written to the root by mistake.
 /preview_*.png
 /roller_*.stl
+/roller_*.3mf
+/stamp_*.stl
+/scraper_*.stl
+/scraper_*.3mf
