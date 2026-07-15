@@ -29,8 +29,9 @@ dough reads the right way round.
 - Motif SVGs: `C:\Users\nikil\3d-printed-playdoh-roller\assets\` (shared with the
   rollers), plus any SVG the user uploads/approves (`--svg` / `--icon` accept an
   absolute path too).
-- Outputs (PNGs and STLs) are written next to the script, regardless of the
-  working directory it is invoked from.
+- Outputs are auto-filed next to the script, regardless of the working
+  directory it is invoked from: previews go to `previews\stamps\` and STLs to
+  `printable_files\stamps\` (the folders are created automatically).
 
 ## Dependencies
 
@@ -103,9 +104,9 @@ looks great for toddlers (the name pops up out of the dough).
 
 ### Output file naming
 
-- Preview: `preview_stamp_<name>.png` (name lowercased, spaces → `_`; motif-only
-  uses the SVG's basename)
-- STL: `stamp_<name>.stl` — `indented` mode appends `_indented`
+- Preview: `previews/stamps/preview_stamp_<name>.png` (name lowercased, spaces →
+  `_`; motif-only uses the SVG's basename)
+- STL: `printable_files/stamps/stamp_<name>.stl` — `indented` mode appends `_indented`
 
 ## What the preview PNG shows
 

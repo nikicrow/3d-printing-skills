@@ -64,6 +64,19 @@ from svg_processing import load_font
 
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Generated outputs are auto-filed into per-tool subfolders so the repo root
+# stays tidy: previews/scrapers/*.png and printable_files/scrapers/*.stl.
+PREVIEW_SUBDIR = os.path.join("previews", "scrapers")
+PRINT_SUBDIR = os.path.join("printable_files", "scrapers")
+
+
+def _out_path(out_dir, subdir, filename):
+    """Return ``<out_dir>/<subdir>/<filename>``, creating the folder if needed."""
+    dest = os.path.join(out_dir, subdir)
+    os.makedirs(dest, exist_ok=True)
+    return os.path.join(dest, filename)
+
+
 # Play-Doh-ish preview colours (shared look with the roller/stamp previews)
 CREAM = (245, 232, 205)
 IMPRINT = (150, 120, 80)
@@ -287,7 +300,8 @@ def make_preview(cfg):
 
     fig.suptitle(f"SCRAPER — {cfg.name}", fontsize=15, fontweight="bold")
     fig.tight_layout(rect=(0, 0, 1, 0.95))
-    out = os.path.join(cfg.out_dir, f"preview_scraper_{cfg.safe_name}.png")
+    out = _out_path(cfg.out_dir, PREVIEW_SUBDIR,
+                    f"preview_scraper_{cfg.safe_name}.png")
     fig.savefig(out, facecolor="white")
     plt.close(fig)
     print(f"[preview] font={font_name}  {cfg.width_mm:.0f}x{cfg.depth_mm:.0f}mm  "
@@ -303,7 +317,8 @@ def make_stl(cfg):
     top, font_name, (W, H) = build_top_field(cfg)
     body = build_prism_between(0.0, top, cfg.width_mm, cfg.depth_mm)
 
-    out = os.path.join(cfg.out_dir, f"scraper_{cfg.safe_name}.stl")
+    out = _out_path(cfg.out_dir, PRINT_SUBDIR,
+                    f"scraper_{cfg.safe_name}.stl")
     body.export(out)
     wt = "watertight" if body.is_watertight else "NOT watertight"
     print(f"[stl] font={font_name}  {cfg.width_mm:.0f}x{cfg.depth_mm:.0f}mm  "
