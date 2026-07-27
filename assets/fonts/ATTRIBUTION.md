@@ -8,12 +8,18 @@ repository.
 
 | File | Family | Designer | License |
 |---|---|---|---|
+| Grandstander.ttf | Grandstander | Eli Heuer | OFL 1.1 |
 | Baloo2.ttf | Baloo 2 | Ek Type | OFL 1.1 |
 | BagelFatOne.ttf | Bagel Fat One | Snadhan / Fontfabric | OFL 1.1 |
 | TitanOne.ttf | Titan One | Rodrigo Fuenzalida | OFL 1.1 |
 | Chewy.ttf | Chewy | Sideshow | Apache 2.0 |
 | LilitaOne.ttf | Lilita One | Juan Montoreano | OFL 1.1 |
 | BubblegumSans.ttf | Bubblegum Sans | Angel Koziupa / Sorkin Type | OFL 1.1 |
+
+`Grandstander.ttf` is a **static Bold (wght=700) instance** baked from the
+upstream Grandstander variable font (via `fonttools varLib.instancer`) so it
+renders as a chunky bold in both Pillow previews and OpenSCAD (which otherwise
+pick the light default instance).
 
 To add another font: drop the `.ttf` here, add its family to `FONTS` in
 `namelabel.py` and to the `font` dropdown in `label.scad`, and record it above.

@@ -11,15 +11,22 @@ Chewy, Lilita One, Bubblegum Sans) sits **raised on top** of a contrasting
 rounded **"trace" border**, with a hole for a split-ring/clasp and an optional
 **theme icon** (a bee on Ember's, a heart on Imogen's, ...).
 
-Unlike the Play-Doh tools (which emit an STL), the geometry lives in one
-**parametric OpenSCAD file** — [`label.scad`](label.scad) — so the *same* source
-is used two ways:
+There are **two interchangeable pipelines** for the same label design:
 
-1. **Locally**, driven by [`namelabel.py`](namelabel.py): a fast colour preview
-   PNG, plus print-ready `--stl` / `--3mf` export via OpenSCAD.
-2. **On MakerWorld**, uploaded to the **Parametric Model Maker**: every
-   customiser variable becomes a web control, so anyone can type a name, pick a
-   font, colours and an icon — a genuinely remixable, multicolour model.
+1. **MakerWorld pipeline** — the parametric OpenSCAD file
+   [`label.scad`](label.scad), driven locally by [`namelabel.py`](namelabel.py)
+   (fast colour preview PNG + `--stl` / `--3mf` export via OpenSCAD), and
+   uploadable to MakerWorld's **Parametric Model Maker** so anyone can type a
+   name, pick a font, colours and an icon — a remixable, multicolour model.
+2. **Standalone pipeline** — [`playdoh_label.py`](playdoh_label.py), a pure
+   `trimesh` generator like the roller/stamp/scraper (no OpenSCAD). It writes a
+   **native multicolour 3MF** with per-triangle materials that Bambu Studio
+   parses (Standard 3MF colour parsing), plus a plain STL and a colour preview.
+   Reusable helpers live in `mesh_utils.build_mask_prism` /
+   `mesh_utils.write_color_3mf`.
+
+Both produce the identical design; the sections below describe the parameters
+(shared by both) and the MakerWorld flow.
 
 > **Waste-optimised two colours, by height.** The bottom band
 > (`0 .. border_h`) is the border colour: the full rounded outline + keychain
@@ -84,6 +91,7 @@ At least one of `--preview` / `--stl` / `--3mf` is required.
 | `--corner-round` | `1.5` | Rounding of the border outline (bubblier = higher), mm |
 | `--border-h` | `1.6` | **Bottom** band thickness (border colour), mm |
 | `--font-h` | `2.0` | **Top** band thickness (name colour), mm |
+| `--bevel` | `0.6` | 45° chamfer on the plate's top/bottom edges, mm (0 = square). Eases printing (less elephant-foot, no sharp arris). Fast on OpenSCAD 2023+/MakerWorld; slow on the old 2021 CGAL backend. |
 | `--icon-scale` | `1.15` | Icon size relative to letter height |
 | `--no-keychain` | (off) | Omit the clasp tab + hole |
 | `--hole-d` | `5.0` | Clasp hole diameter, mm |

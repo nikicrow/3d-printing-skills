@@ -42,8 +42,185 @@ DEPENDENCIES
 """
 
 import math
+import os
+import zipfile
 
 import numpy as np
+
+
+def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
+                     flip_y=True):
+    """Extrude a binary mask into a watertight prism (with through-holes).
+
+    The planar analogue used by the name-label tool: every *truthy* pixel of
+    ``mask`` becomes a little column of solid between ``z_bottom`` and
+    ``z_top``; *falsy* pixels are empty, so interior gaps (a keychain hole, the
+    counter of an "o") come out as real through-holes — something a
+    single-valued heightfield (:func:`build_prism_between`) cannot do.
+
+    Vertices are shared on a corner grid, so the top cap, bottom cap and the
+    vertical walls at every on/off boundary close into a single watertight
+    solid with no booleans. Edges are stair-stepped at the pixel scale, so pick
+    ``mm_per_px`` fine enough for the feature detail you need (the mask is
+    normally rasterised with rounded offsets, which hides the stepping).
+
+    Parameters
+    ----------
+    mask : numpy.ndarray or PIL.Image.Image
+        2-D mask; truthy (``> 0``) pixels are solid. Axis 0 (rows) maps to Y,
+        axis 1 (columns) to X.
+    z_bottom, z_top : float
+        Bottom and top Z of the extrusion, in mm (``z_top > z_bottom``).
+    mm_per_px : float
+        Size of one pixel in mm (``1 / ppm``).
+    x0, y0 : float, optional
+        World XY of the mask's ``(0, 0)`` corner, in mm. Defaults to ``0``.
+    flip_y : bool, optional
+        If ``True`` (default), row 0 maps to the *top* (larger Y), matching
+        image convention so text/icons come out upright.
+
+    Returns
+    -------
+    trimesh.Trimesh
+        The extruded solid, ``process=False`` (topology guarantees
+        watertightness; winding is left for the slicer to auto-repair).
+    """
+    import trimesh
+
+    M = np.asarray(mask) > 0
+    H, W = M.shape
+    Wc, Hc = W + 1, H + 1
+    s = float(mm_per_px)
+
+    ii = np.arange(Wc)
+    jj = np.arange(Hc)
+    gx = x0 + ii * s
+    gy = (y0 + (H - jj) * s) if flip_y else (y0 + jj * s)
+    GX, GY = np.meshgrid(gx, gy)                      # (Hc, Wc)
+    N = Hc * Wc
+    flat = np.stack([GX.ravel(), GY.ravel()], axis=1)
+    verts = np.vstack([
+        np.column_stack([flat, np.full(N, z_bottom)]),   # [0:N]   bottom
+        np.column_stack([flat, np.full(N, z_top)])])     # [N:2N]  top
+
+    def ci(j, i):
+        return j * Wc + i                             # bottom corner index
+
+    js, is_ = np.where(M)
+    a, b = ci(js, is_), ci(js, is_ + 1)
+    c, d = ci(js + 1, is_ + 1), ci(js + 1, is_)
+    A, B, C, D = a + N, b + N, c + N, d + N
+    faces = [
+        np.stack([A, C, B], 1), np.stack([A, D, C], 1),   # top cap
+        np.stack([a, b, c], 1), np.stack([a, c, d], 1),   # bottom cap
+    ]
+
+    def _bound(shifted):
+        return M & ~shifted
+
+    left = np.zeros_like(M); left[:, 1:] = M[:, :-1]
+    right = np.zeros_like(M); right[:, :-1] = M[:, 1:]
+    up = np.zeros_like(M); up[1:, :] = M[:-1, :]
+    down = np.zeros_like(M); down[:-1, :] = M[1:, :]
+
+    def wall(p0, p1):
+        return np.concatenate([np.stack([p0, p1, p1 + N], 1),
+                               np.stack([p0, p1 + N, p0 + N], 1)])
+
+    lj, li = np.where(_bound(left))
+    faces.append(wall(ci(lj, li), ci(lj + 1, li)))
+    rj, ri = np.where(_bound(right))
+    faces.append(wall(ci(rj, ri + 1), ci(rj + 1, ri + 1)))
+    uj, ui = np.where(_bound(up))
+    faces.append(wall(ci(uj, ui), ci(uj, ui + 1)))
+    dj, di = np.where(_bound(down))
+    faces.append(wall(ci(dj + 1, di), ci(dj + 1, di + 1)))
+
+    return trimesh.Trimesh(vertices=verts, faces=np.concatenate(faces),
+                           process=False)
+
+
+def _rrggbbaa(hexcolor):
+    """Normalise ``#rgb`` / ``#rrggbb`` to an upper-case ``#RRGGBBFF`` string."""
+    c = hexcolor.lstrip("#")
+    if len(c) == 3:
+        c = "".join(ch * 2 for ch in c)
+    return "#" + c.upper() + "FF"
+
+
+def write_color_3mf(mesh, face_material, colors, path, names=None):
+    """Write a standard multi-material 3MF that Bambu Studio parses as colour.
+
+    Uses the core 3MF **material extension**: a ``<basematerials>`` group holds
+    one entry per colour, and every ``<triangle>`` carries a ``pid``/``p1``
+    pointing at its material. Bambu Studio's "Standard 3MF File Color Parsing"
+    reads this and offers to map each material to a filament on import, so a
+    single object comes in already split into its two colours — no painting, no
+    manual per-layer filament change.
+
+    Parameters
+    ----------
+    mesh : trimesh.Trimesh
+        Combined geometry (e.g. the label's border plate + raised name).
+    face_material : sequence of int
+        Per-face material index (``len == len(mesh.faces)``), each into
+        ``colors``.
+    colors : sequence of str
+        Hex colours (``#rgb`` or ``#rrggbb``), one per material index.
+    path : str
+        Output ``.3mf`` file path.
+    names : sequence of str, optional
+        Human-readable material names (defaults to ``material_0`` ...).
+    """
+    verts = np.asarray(mesh.vertices, dtype=float)
+    faces = np.asarray(mesh.faces, dtype=int)
+    fm = np.asarray(face_material, dtype=int)
+    if names is None:
+        names = [f"material_{i}" for i in range(len(colors))]
+
+    bm = "".join(f'<base name="{names[i]}" displaycolor="{_rrggbbaa(c)}"/>'
+                 for i, c in enumerate(colors))
+    vtx = "".join(f'<vertex x="{x:.4f}" y="{y:.4f}" z="{z:.4f}"/>'
+                  for x, y, z in verts)
+    tri = "".join(
+        f'<triangle v1="{a}" v2="{b}" v3="{c}" pid="1" p1="{m}"/>'
+        for (a, b, c), m in zip(faces, fm))
+
+    model = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<model unit="millimeter" xml:lang="en-US" '
+        'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" '
+        'xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02">\n'
+        ' <metadata name="Application">playdoh-namelabel</metadata>\n'
+        ' <resources>\n'
+        f'  <basematerials id="1">{bm}</basematerials>\n'
+        '  <object id="2" type="model" pid="1" pindex="0">\n'
+        f'   <mesh><vertices>{vtx}</vertices>'
+        f'<triangles>{tri}</triangles></mesh>\n'
+        '  </object>\n'
+        ' </resources>\n'
+        ' <build><item objectid="2" '
+        'transform="1 0 0 0 1 0 0 0 1 0 0 0"/></build>\n'
+        '</model>\n')
+
+    content_types = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\n'
+        ' <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\n'
+        ' <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>\n'
+        '</Types>\n')
+    rels = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n'
+        ' <Relationship Target="/3D/3dmodel.model" Id="rel-1" '
+        'Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>\n'
+        '</Relationships>\n')
+
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", content_types)
+        z.writestr("_rels/.rels", rels)
+        z.writestr("3D/3dmodel.model", model)
 
 
 def polar_disk_relief(mask, radius, relief, n_theta, thetas, start_index,

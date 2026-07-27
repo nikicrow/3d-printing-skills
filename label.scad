@@ -30,7 +30,7 @@
 // The name to print
 name = "Ember";
 // Bubbly font (all bundled in assets/fonts, open licensed)
-font = "Baloo 2"; // [Baloo 2, Bagel Fat One, Titan One, Chewy, Lilita One, Bubblegum Sans]
+font = "Grandstander"; // [Grandstander, Baloo 2, Bagel Fat One, Titan One, Chewy, Lilita One, Bubblegum Sans]
 
 /* [Colours] */
 // Top layer — the letters
@@ -55,6 +55,10 @@ corner_round = 1.5;    // [0:0.5:6]
 border_h = 1.6;        // [0.8:0.2:4.0]
 // Top (name colour) layer thickness
 font_h = 2.0;          // [0.8:0.2:4.0]
+// 45° chamfer on the plate's top & bottom edges (0 = square). A small bevel
+// lifts the first-layer edge off the bed (less elephant-foot) and removes the
+// sharp top arris, so the label prints and pops off cleaner.
+bevel = 0.6;           // [0:0.1:1.5]
 
 /* [Keychain] */
 // Add a tab with a hole for a clasp / split ring
@@ -98,10 +102,11 @@ module name2d() {
 module icon2d() {
     if (icon != "none") {
         s = icon_w / icon_vb(icon);              // px -> mm
-        // SVG y-axis points down; mirror Y so the icon is upright. Centre the
-        // icon footprint on (content_left + icon_w/2, 0).
+        // OpenSCAD's SVG import already orients the art upright (Y is handled),
+        // so scale uniformly — no extra mirror. Centre the icon footprint on
+        // (content_left + icon_w/2, 0).
         translate([content_left + icon_w/2, 0])
-            scale([s, -s])
+            scale([s, s])
                 import(str("assets/", icon, ".svg"), center = true);
     }
 }
@@ -144,13 +149,37 @@ module plate2d() {
     }
 }
 
-// ---- 3D parts -----------------------------------------------------------
-module base_part() {                     // bottom band = border colour
-    linear_extrude(height = border_h)
-        difference() {
-            plate2d();
-            if (keychain) tab_hole();
+// A chamfered extrude that PRESERVES holes and concavity (unlike hull): the
+// top and bottom `c` mm are built as a short stack of inward-offset slabs,
+// approximating a 45° bevel on every edge (outer rim and the keychain hole).
+module bevel_extrude(h, c, steps = 2) {
+    cc = min(c, h / 2 - 0.02);
+    if (cc <= 0) {
+        linear_extrude(height = h) children();
+    } else {
+        step = cc / steps;
+        translate([0, 0, cc - 0.01])               // full-section core
+            linear_extrude(height = h - 2 * cc + 0.02) children();
+        for (k = [0 : steps - 1]) {
+            inset = cc - k * step;                 // most eroded at the faces
+            translate([0, 0, k * step])            // bottom chamfer, rising
+                linear_extrude(height = step + 0.01) offset(r = -inset) children();
+            translate([0, 0, h - (k + 1) * step])  // top chamfer, falling
+                linear_extrude(height = step + 0.01) offset(r = -inset) children();
         }
+    }
+}
+
+// ---- 3D parts -----------------------------------------------------------
+module base_shape2d() {
+    difference() {
+        plate2d();
+        if (keychain) tab_hole();
+    }
+}
+
+module base_part() {                     // bottom band = border colour
+    bevel_extrude(border_h, bevel) base_shape2d();
 }
 
 module name_part() {                     // top band = name colour (letters+icon)

@@ -57,6 +57,7 @@ PRINT_SUBDIR = os.path.join("printable_files", "labels")
 
 # Bundled bubbly fonts: customiser family name -> TTF file (in assets/fonts).
 FONTS = {
+    "Grandstander": "Grandstander.ttf",
     "Baloo 2": "Baloo2.ttf",
     "Bagel Fat One": "BagelFatOne.ttf",
     "Titan One": "TitanOne.ttf",
@@ -88,7 +89,7 @@ class LabelConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     name: str = Field("Ember", min_length=1)
-    font: str = Field("Baloo 2")
+    font: str = Field("Grandstander")
     icon: str = Field("none")
 
     name_color: str = Field("#2b2b2b")     # top layer (letters)
@@ -99,6 +100,7 @@ class LabelConfig(BaseModel):
     corner_round_mm: float = Field(1.5, ge=0)
     border_h_mm: float = Field(1.6, gt=0)      # bottom band thickness
     font_h_mm: float = Field(2.0, gt=0)        # top band thickness
+    bevel_mm: float = Field(0.6, ge=0)         # 45° chamfer on plate edges
     icon_scale: float = Field(1.15, gt=0)
 
     keychain: bool = True
@@ -299,6 +301,7 @@ def _openscad_defines(cfg):
         "-D", f"corner_round={cfg.corner_round_mm}",
         "-D", f"border_h={cfg.border_h_mm}",
         "-D", f"font_h={cfg.font_h_mm}",
+        "-D", f"bevel={cfg.bevel_mm}",
         "-D", f"icon_scale={cfg.icon_scale}",
         "-D", f"keychain={b}",
         "-D", f"hole_d={cfg.hole_d_mm}",
@@ -342,7 +345,7 @@ def config_from_args(a):
         name_color=a.name_color, border_color=a.border_color,
         letter_height_mm=a.letter_height, border_width_mm=a.border_width,
         corner_round_mm=a.corner_round, border_h_mm=a.border_h,
-        font_h_mm=a.font_h, icon_scale=a.icon_scale,
+        font_h_mm=a.font_h, bevel_mm=a.bevel, icon_scale=a.icon_scale,
         keychain=not a.no_keychain, hole_d_mm=a.hole_d,
         hole_wall_mm=a.hole_wall, smoothness=a.smoothness)
 
@@ -365,6 +368,9 @@ def main():
                    help="bottom (border colour) band thickness, mm")
     p.add_argument("--font-h", type=float, default=d.font_h_mm,
                    help="top (name colour) band thickness, mm")
+    p.add_argument("--bevel", type=float, default=d.bevel_mm,
+                   help="45° chamfer on plate edges, mm (0 = square; slower to "
+                        "render on old OpenSCAD, fast on 2023+/MakerWorld)")
     p.add_argument("--icon-scale", type=float, default=d.icon_scale)
     p.add_argument("--no-keychain", action="store_true",
                    help="omit the clasp tab + hole")

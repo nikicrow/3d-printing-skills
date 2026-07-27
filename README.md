@@ -52,7 +52,8 @@ Per-tool reference docs (all flags, printing settings, design constraints):
 
 ```
 label.scad             name-label geometry (parametric OpenSCAD, MakerWorld-ready)
-namelabel.py           name-label driver  (LabelConfig): PIL preview + OpenSCAD export
+namelabel.py           name-label MakerWorld pipeline: PIL preview + OpenSCAD export
+playdoh_label.py       name-label standalone pipeline: pure-trimesh multicolour 3MF
 playdoh_roller.py      roller generator   (RollerConfig)
 playdoh_stamp.py       stamp generator    (StampConfig)
 playdoh_scraper.py     scraper generator  (ScraperConfig)
@@ -103,13 +104,24 @@ routes:
   assign a filament to each (needs OpenSCAD **2024+** for colour-in-3MF, which is
   what MakerWorld runs).
 
-Everything fuses into **one connected, watertight solid** (a hidden connector
-web in the base ties the tab, icon and name together), so nothing prints loose.
+The base plate is **one connected piece** (a hidden connector web in the base
+ties the tab, icon and name together), so nothing prints loose. A small **45°
+bevel** on the plate edges (`bevel`, default 0.6 mm) lifts the first-layer edge
+off the bed (less elephant-foot) and removes the sharp top arris.
+
+There are **two interchangeable pipelines** for the same design:
 
 ```bash
-python namelabel.py --name "Ember"  --icon bee   --preview --stl
-python namelabel.py --name "Imogen" --icon heart --font "Bagel Fat One" --3mf
+# 1) MakerWorld pipeline — parametric label.scad, exported via OpenSCAD:
+python namelabel.py    --name "Ember"  --icon bee   --preview --stl
+
+# 2) Standalone pipeline — pure trimesh, writes a native multicolour 3MF
+#    (per-triangle materials Bambu Studio parses) with NO OpenSCAD needed:
+python playdoh_label.py --name "Imogen" --icon heart --3mf
 ```
+
+Use pipeline 1 to post a customisable model to MakerWorld; use pipeline 2 to get
+a ready-to-slice two-colour 3MF locally.
 
 ### Post it on MakerWorld as a customisable model
 
