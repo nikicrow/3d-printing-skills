@@ -28,12 +28,18 @@ USAGE
 
 DEPENDENCIES
 ------------
-    pip install trimesh numpy pillow matplotlib svgpathtools pydantic --break-system-packages
+    pip install trimesh numpy pillow matplotlib svgpathtools pydantic scipy --break-system-packages
+
+(``scipy`` powers the edge chamfer only; without it ``--bevel`` is a no-op and
+the plate comes out square-edged.)
 
 ----------------------------------------------------------------------------
 3D PRINTING NOTES
 ----------------------------------------------------------------------------
   * Orientation : flat on the bed, name up (as exported). No supports.
+  * Edges       : the plate carries a 45° chamfer top and bottom (``--bevel``,
+                  0.6 mm default), which hides elephant-foot on the first layer
+                  and leaves no sharp arris for small hands.
   * 2 colours   : the 3MF carries two materials (border, name). In Bambu Studio
                   assign a filament to each on import. Single-extruder: print the
                   STL with one filament change at Z = border_h (printed on export).
@@ -100,6 +106,7 @@ class LabelConfig(BaseModel):
     corner_round_mm: float = Field(1.5, ge=0)
     border_h_mm: float = Field(1.6, gt=0)
     font_h_mm: float = Field(2.0, gt=0)
+    bevel_mm: float = Field(0.6, ge=0)         # 45° chamfer on plate edges
     icon_scale: float = Field(1.15, gt=0)
 
     keychain: bool = True
@@ -286,7 +293,10 @@ def build_mesh(cfg):
     import trimesh
     cm, base, ppm = build_masks(cfg)
     s = 1.0 / ppm
-    base_m = build_mask_prism(base, 0.0, cfg.border_h_mm, s)
+    # Only the border plate is chamfered — same as label.scad, where the raised
+    # name/icon keeps crisp vertical sides so the letterforms stay sharp.
+    base_m = build_mask_prism(base, 0.0, cfg.border_h_mm, s,
+                              bevel=cfg.bevel_mm)
     # name overlaps the base plane slightly so the two fuse into one solid
     name_m = build_mask_prism(cm, cfg.border_h_mm - 0.01,
                               cfg.total_h_mm, s)
@@ -335,7 +345,7 @@ def config_from_args(a):
         name_color=a.name_color, border_color=a.border_color,
         letter_height_mm=a.letter_height, border_width_mm=a.border_width,
         corner_round_mm=a.corner_round, border_h_mm=a.border_h,
-        font_h_mm=a.font_h, icon_scale=a.icon_scale,
+        font_h_mm=a.font_h, bevel_mm=a.bevel, icon_scale=a.icon_scale,
         keychain=not a.no_keychain, hole_d_mm=a.hole_d,
         hole_wall_mm=a.hole_wall, ppm=a.ppm)
 
@@ -354,6 +364,9 @@ def main():
     p.add_argument("--corner-round", type=float, default=d.corner_round_mm)
     p.add_argument("--border-h", type=float, default=d.border_h_mm)
     p.add_argument("--font-h", type=float, default=d.font_h_mm)
+    p.add_argument("--bevel", type=float, default=d.bevel_mm,
+                   help="45° chamfer on the plate's top/bottom edges, mm "
+                        "(0 = square)")
     p.add_argument("--icon-scale", type=float, default=d.icon_scale)
     p.add_argument("--no-keychain", action="store_true")
     p.add_argument("--hole-d", type=float, default=d.hole_d_mm)

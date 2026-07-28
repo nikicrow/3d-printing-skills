@@ -48,8 +48,30 @@ import zipfile
 import numpy as np
 
 
+def _corner_edge_distance(M):
+    """Distance (in pixels) from every corner-grid node to the mask's edge.
+
+    Helper for :func:`build_mask_prism`'s bevel. ``M`` is an ``(H, W)`` pixel
+    mask; the returned ``(H+1, W+1)`` array measures, for each *corner* of that
+    grid, how far it lies inside the solid. A corner is "inside" only when all
+    four pixels touching it are solid, so corners sitting on any silhouette
+    edge — the outer rim *and* the rim of every through-hole — get ``0``, and
+    the distance grows by one per pixel step inwards.
+
+    Requires ``scipy``; the caller falls back to a square (unbevelled) edge if
+    it is unavailable.
+    """
+    from scipy.ndimage import distance_transform_edt
+
+    H, W = M.shape
+    P = np.zeros((H + 2, W + 2), bool)                # pad: outside is empty
+    P[1:-1, 1:-1] = M
+    inside = P[:-1, :-1] & P[:-1, 1:] & P[1:, :-1] & P[1:, 1:]   # (H+1, W+1)
+    return distance_transform_edt(inside)
+
+
 def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
-                     flip_y=True):
+                     flip_y=True, bevel=0.0):
     """Extrude a binary mask into a watertight prism (with through-holes).
 
     The planar analogue used by the name-label tool: every *truthy* pixel of
@@ -63,6 +85,12 @@ def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
     solid with no booleans. Edges are stair-stepped at the pixel scale, so pick
     ``mm_per_px`` fine enough for the feature detail you need (the mask is
     normally rasterised with rounded offsets, which hides the stepping).
+
+    With ``bevel > 0`` the top and bottom caps are ramped down to meet the
+    walls, giving a 45° chamfer on every edge — the mesh-native equivalent of
+    ``label.scad``'s ``bevel_extrude``, but built by *moving cap vertices in Z*
+    rather than by unioning inset slabs, so it costs one distance transform
+    instead of a boolean stack and adds no triangles at all.
 
     Parameters
     ----------
@@ -78,12 +106,18 @@ def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
     flip_y : bool, optional
         If ``True`` (default), row 0 maps to the *top* (larger Y), matching
         image convention so text/icons come out upright.
+    bevel : float, optional
+        45° chamfer depth in mm on the top and bottom caps (``0`` = square
+        edges, the default). Clamped to just under half the extrusion height so
+        the two chamfers never cross. Needs ``scipy``; without it the chamfer
+        is skipped and the prism comes out square-edged.
 
     Returns
     -------
     trimesh.Trimesh
-        The extruded solid, ``process=False`` (topology guarantees
-        watertightness; winding is left for the slicer to auto-repair).
+        The extruded solid, ``process=False`` — the topology guarantees a
+        watertight, consistently outward-wound mesh, so no repair pass is
+        needed before export.
     """
     import trimesh
 
@@ -99,9 +133,24 @@ def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
     GX, GY = np.meshgrid(gx, gy)                      # (Hc, Wc)
     N = Hc * Wc
     flat = np.stack([GX.ravel(), GY.ravel()], axis=1)
+
+    # Cap heights: flat by default, ramped in from every edge when bevelling.
+    zb = np.full(N, float(z_bottom))
+    zt = np.full(N, float(z_top))
+    c = min(float(bevel), (z_top - z_bottom) / 2 - 1e-3)
+    if c > 0:
+        try:
+            dist_mm = _corner_edge_distance(M) * s        # (Hc, Wc), mm inward
+        except ImportError:
+            pass
+        else:
+            inset = np.clip(c - dist_mm, 0.0, c).ravel()  # 45° => dz == dxy
+            zb += inset
+            zt -= inset
+
     verts = np.vstack([
-        np.column_stack([flat, np.full(N, z_bottom)]),   # [0:N]   bottom
-        np.column_stack([flat, np.full(N, z_top)])])     # [N:2N]  top
+        np.column_stack([flat, zb]),                     # [0:N]   bottom
+        np.column_stack([flat, zt])])                    # [N:2N]  top
 
     def ci(j, i):
         return j * Wc + i                             # bottom corner index
@@ -124,15 +173,20 @@ def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
     down = np.zeros_like(M); down[:-1, :] = M[1:, :]
 
     def wall(p0, p1):
+        """Quad p0 -> p1 -> p1_top -> p0_top; its normal follows p0 -> p1."""
         return np.concatenate([np.stack([p0, p1, p1 + N], 1),
                                np.stack([p0, p1 + N, p0 + N], 1)])
 
+    # Each wall is traversed so its normal points *out* of the solid: with row 0
+    # at the top (flip_y), that means walking a left/down edge forwards and a
+    # right/up edge backwards. Getting these consistent keeps the exported STL
+    # and 3MF spec-correct (outward CCW) instead of relying on slicer repair.
     lj, li = np.where(_bound(left))
     faces.append(wall(ci(lj, li), ci(lj + 1, li)))
     rj, ri = np.where(_bound(right))
-    faces.append(wall(ci(rj, ri + 1), ci(rj + 1, ri + 1)))
+    faces.append(wall(ci(rj + 1, ri + 1), ci(rj, ri + 1)))
     uj, ui = np.where(_bound(up))
-    faces.append(wall(ci(uj, ui), ci(uj, ui + 1)))
+    faces.append(wall(ci(uj, ui + 1), ci(uj, ui)))
     dj, di = np.where(_bound(down))
     faces.append(wall(ci(dj + 1, di), ci(dj + 1, di + 1)))
 
