@@ -59,6 +59,7 @@ playdoh_stamp.py       stamp generator    (StampConfig)
 playdoh_scraper.py     scraper generator  (ScraperConfig)
 svg_processing.py      shared: SVG → mask rasterizer + font loading
 mesh_utils.py          shared: watertight mesh helpers (no booleans, no supports)
+test_label_3mf.py      checks label 3MFs really are two-colour (lib3mf, strict)
 
 assets/                decoration SVGs + ATTRIBUTION.md
 assets/fonts/          bundled bubbly fonts for the label (OFL/Apache) + ATTRIBUTION.md
@@ -105,6 +106,13 @@ routes:
   pinned to extruder 1 and 2 — import and print. (The OpenSCAD route exports the
   same two `color()` parts but needs **2024+** for colour-in-3MF, which is what
   MakerWorld runs.)
+
+`python test_label_3mf.py` re-reads the exported 3MFs with **lib3mf**, the 3MF
+Consortium's reference implementation, and asserts the things that make them
+print in two colours — two distinct base materials, each part bound to one and
+manifold-and-oriented, one build item, and the Bambu extruder assignments. All
+13 party labels pass in strict mode. (Bambu Studio itself has not been run
+against them; see [`SKILL_label.md`](SKILL_label.md).)
 
 The base plate is **one connected piece** (a hidden connector web in the base
 ties the tab, icon and name together), so nothing prints loose. A small **45°

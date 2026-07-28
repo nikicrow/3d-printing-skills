@@ -280,11 +280,15 @@ def write_color_3mf(mesh, face_material, colors, path, names=None,
             '  </part>\n')
 
     asm = 2 + len(parts)                           # the assembly object id
+    # The BambuStudio: prefix on the 3mfVersion metadatum below must be a
+    # namespace declared here — the 3MF core spec requires it, and lib3mf (and
+    # so any strict reader) refuses to load the whole package without it.
     model = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<model unit="millimeter" xml:lang="en-US" '
         'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" '
-        'xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02">\n'
+        'xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02" '
+        'xmlns:BambuStudio="http://schemas.bambulab.com/package/2021">\n'
         ' <metadata name="Application">playdoh-namelabel</metadata>\n'
         ' <metadata name="BambuStudio:3mfVersion">1</metadata>\n'
         ' <resources>\n'

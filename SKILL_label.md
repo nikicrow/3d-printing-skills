@@ -139,11 +139,19 @@ OpenSCAD **2021.01**, exporting `Imogen` + heart:
 Each extra step roughly triples the render, which is why `bevel_steps` defaults
 to **1** — a single 45° facet, visually indistinguishable at a 0.6 mm chamfer.
 
+(Re-measured on a second 2021.01 machine: 14 s at `bevel = 0` vs 78 s at
+`bevel = 0.6, bevel_steps = 1`. Absolute times are machine-dependent, but the
+**~5× cost of turning the chamfer on** is consistent, and the exported geometry
+is identical either way.)
+
 OpenSCAD **2023+** and MakerWorld use the **Manifold** backend, where these
-unions are dramatically cheaper. That has **not** been verified here (no modern
-OpenSCAD was available in the build environment), so treat it as an assumption:
-when you upload to the Parametric Model Maker, render once with the defaults,
-and if it times out set `bevel = 0` — the chamfer is a nicety, not structural.
+unions are dramatically cheaper. That is still **unverified**: modern OpenSCAD
+ships only from `files.openscad.org`, which this environment's egress policy
+blocks (HTTP 403), and the newest build in Ubuntu's archive — and the newest
+release on OpenSCAD's GitHub — is 2021.01, which has no Manifold backend at all
+(no `--enable=manifold`). So treat it as an assumption: when you upload to the
+Parametric Model Maker, render once with the defaults, and if it times out set
+`bevel = 0` — the chamfer is a nicety, not structural.
 
 The standalone pipeline has no such problem: `build_mask_prism` chamfers by
 ramping cap vertices along a distance transform, which adds **no** triangles and
@@ -162,12 +170,37 @@ The label is a clean height split, so there are two easy routes:
   materials as a fallback for other slicers. No painting, no manual Z. The
   OpenSCAD route also works but needs **2024+** (or MakerWorld) for colour.
 
-> **Not yet confirmed in Bambu Studio.** The 3MF is structurally valid on both
-> counts and round-trips through `trimesh` as two watertight, correctly-wound
-> parts, but no Bambu Studio was available to open it in the build environment.
-> If it ever imports single-colour, the parts and their extruder assignments are
-> in `Metadata/model_settings.config` inside the zip — that is the file to check
-> first.
+### Is the colour actually valid? (`test_label_3mf.py`)
+
+Bambu Studio itself still has not been run against these files — it was not
+available in the build environment. But "round-trips through `trimesh`" was a
+weak check, because `trimesh` also *wrote* the file, so it could not catch a
+malformed package. The 3MFs are now read back with **lib3mf**, the 3MF
+Consortium's reference implementation and the parser Bambu Studio's "Standard
+3MF File Color Parsing" is built on:
+
+```bash
+pip install lib3mf
+python test_label_3mf.py                 # checks every 3MF in printable_files/labels/
+```
+
+In lib3mf **strict** mode each file parses with zero warnings, and the reference
+parser independently resolves **two distinct base materials** (`border`
+`#F2EAD6`, `name` `#2B2B2B`), each mesh part correctly bound to one of them,
+both parts manifold-and-oriented, assembled under a single build item — plus the
+Bambu `model_settings.config` pinning the parts to extruder 1 and 2.
+
+That check caught a real bug: the `BambuStudio:3mfVersion` metadata used a
+namespace prefix that was never declared on the `<model>` element, which the 3MF
+core spec forbids. lib3mf refused to load the file at all in strict mode. The
+writer now declares `xmlns:BambuStudio="http://schemas.bambulab.com/package/2021"`
+(what Bambu Studio's own exports carry), and all 13 committed labels were
+regenerated.
+
+> So: verified conformant by the reference implementation, not yet eyeballed in
+> Bambu Studio. If it ever imports single-colour anyway, the parts and their
+> extruder assignments are in `Metadata/model_settings.config` inside the zip —
+> that is the file to check first.
 
 Print settings: flat on the bed (already oriented, name up), **no supports**
 (everything is a flat extrusion above a flat base), 0.15–0.20 mm layers, 3+
