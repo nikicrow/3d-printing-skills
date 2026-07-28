@@ -73,7 +73,8 @@ FONTS = {
     "Bubblegum Sans": "BubblegumSans.ttf",
 }
 ICONS = ["none", "bee", "heart", "star", "flower", "paw", "cat", "apple",
-         "car", "truck", "banana"]
+         "car", "truck", "banana", "brontosaurus", "trex", "circle", "square",
+         "triangle"]
 
 
 def _out_path(out_dir, subdir, filename):
@@ -139,8 +140,15 @@ class LabelConfig(BaseModel):
 
     @property
     def stem(self) -> str:
+        """Output basename, ``_mesh``-suffixed to stay out of OpenSCAD's way.
+
+        ``namelabel.py`` writes ``label_ember_bee.{stl,3mf}`` from the same
+        parameters, so without the suffix whichever tool ran last would silently
+        clobber the other's export. The preview PNGs already separate the two
+        pipelines this way.
+        """
         tag = f"_{self.icon}" if self.icon != "none" else ""
-        return f"label_{self.safe_name}{tag}"
+        return f"label_{self.safe_name}{tag}_mesh"
 
 
 def _hex(c):
@@ -260,11 +268,17 @@ def make_preview(cfg):
                   + f"   ({cfg.font})", fontsize=14, fontweight="bold")
     axt.set_xlabel("mm"); axt.set_ylabel("mm")
 
-    # side profile: two colour bands (border then name), showing the height split
-    axp.add_patch(plt.Rectangle((0, 0), 10, cfg.border_h_mm,
-                                color=border_rgb, ec="0.4"))
+    # side profile: two colour bands (border then name), showing the height
+    # split — and the 45° chamfer the mesh actually carries on the plate edges
+    w, b, h = 10.0, min(cfg.bevel_mm, cfg.border_h_mm / 2), cfg.border_h_mm
+    plate = [(b, 0), (w - b, 0), (w, b), (w, h - b), (w - b, h), (b, h),
+             (0, h - b), (0, b)]
+    axp.add_patch(plt.Polygon(plate, closed=True, color=border_rgb, ec="0.4"))
     axp.add_patch(plt.Rectangle((3, cfg.border_h_mm), 4, cfg.font_h_mm,
                                 color=name_rgb, ec="0.4"))
+    if b > 0:
+        axp.annotate(f"{cfg.bevel_mm:.1f} mm 45° chamfer", (w + 0.3, 0.05),
+                     fontsize=8, color="0.45")
     axp.annotate(f"border band 0–{cfg.border_h_mm:.1f} mm",
                  (10.3, cfg.border_h_mm / 2), va="center", fontsize=9)
     axp.annotate(f"name band → {cfg.total_h_mm:.1f} mm",
@@ -277,7 +291,7 @@ def make_preview(cfg):
     axp.set_title("side profile — two colours split by height", fontsize=11)
 
     fig.tight_layout()
-    out = _out_path(cfg.out_dir, PREVIEW_SUBDIR, f"preview_{cfg.stem}_mesh.png")
+    out = _out_path(cfg.out_dir, PREVIEW_SUBDIR, f"preview_{cfg.stem}.png")
     fig.savefig(out, facecolor="white")
     plt.close(fig)
     print(f"[preview] {cfg.name}  font={cfg.font}  icon={cfg.icon}  "
@@ -327,12 +341,12 @@ def make_3mf(cfg):
     combo, face_mat = build_mesh(cfg)
     out = _out_path(cfg.out_dir, PRINT_SUBDIR, f"{cfg.stem}.3mf")
     write_color_3mf(combo, face_mat, [cfg.border_color, cfg.name_color], out,
-                    names=["border", "name"])
-    print(f"[3mf] {cfg.name}  2 materials (border, name)  "
-          f"faces={len(combo.faces)}")
+                    names=["border", "name"], object_name=cfg.stem)
+    print(f"[3mf] {cfg.name}  2 coloured parts (border, name)  "
+          f"faces={len(combo.faces)}  {os.path.getsize(out) / 1e6:.1f} MB")
     print(f"[3mf] saved -> {out}")
-    print("[3mf] Bambu Studio: assign a filament to each material on import "
-          "(Standard 3MF colour parsing). No painting needed.")
+    print("[3mf] Bambu Studio: opens as one object of two parts, already "
+          "pinned to extruder 1 (border) and 2 (name). No painting needed.")
     return out
 
 

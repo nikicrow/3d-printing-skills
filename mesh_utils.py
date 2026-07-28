@@ -202,15 +202,28 @@ def _rrggbbaa(hexcolor):
     return "#" + c.upper() + "FF"
 
 
-def write_color_3mf(mesh, face_material, colors, path, names=None):
-    """Write a standard multi-material 3MF that Bambu Studio parses as colour.
+def write_color_3mf(mesh, face_material, colors, path, names=None,
+                    object_name=None):
+    """Write a multi-colour 3MF that both generic slicers and Bambu Studio read.
 
-    Uses the core 3MF **material extension**: a ``<basematerials>`` group holds
-    one entry per colour, and every ``<triangle>`` carries a ``pid``/``p1``
-    pointing at its material. Bambu Studio's "Standard 3MF File Color Parsing"
-    reads this and offers to map each material to a filament on import, so a
-    single object comes in already split into its two colours — no painting, no
-    manual per-layer filament change.
+    The mesh is split into one 3MF ``<object>`` per material and those are
+    assembled as ``<components>`` of a single build item, so the label arrives
+    as *one* object made of coloured parts you can still move as a unit. Two
+    independent colour declarations ride along, because slicers disagree about
+    which one they read:
+
+    * **Core 3MF material extension** — a ``<basematerials>`` group holds one
+      entry per colour and each part object carries ``pid``/``pindex``. This is
+      what a conformant reader (PrusaSlicer, Cura, the Windows 3D viewer, and
+      Bambu Studio's "Standard 3MF File Color Parsing") uses.
+    * **Bambu/Orca native ``Metadata/model_settings.config``** — names each
+      part and pins it to an extruder. Bambu Studio prefers this when present,
+      so the label comes in already split across filaments with nothing to
+      assign by hand.
+
+    Declaring the material per *object* rather than per *triangle* also keeps
+    the file small: a half-million-triangle label would otherwise repeat a
+    ``pid``/``p1`` pair on every single triangle.
 
     Parameters
     ----------
@@ -218,50 +231,87 @@ def write_color_3mf(mesh, face_material, colors, path, names=None):
         Combined geometry (e.g. the label's border plate + raised name).
     face_material : sequence of int
         Per-face material index (``len == len(mesh.faces)``), each into
-        ``colors``.
+        ``colors``. Faces sharing an index become one coloured part.
     colors : sequence of str
         Hex colours (``#rgb`` or ``#rrggbb``), one per material index.
     path : str
         Output ``.3mf`` file path.
     names : sequence of str, optional
-        Human-readable material names (defaults to ``material_0`` ...).
+        Human-readable part names (defaults to ``material_0`` ...).
+    object_name : str, optional
+        Name for the assembled object (defaults to the file's stem).
     """
     verts = np.asarray(mesh.vertices, dtype=float)
     faces = np.asarray(mesh.faces, dtype=int)
     fm = np.asarray(face_material, dtype=int)
     if names is None:
         names = [f"material_{i}" for i in range(len(colors))]
+    if object_name is None:
+        object_name = os.path.splitext(os.path.basename(path))[0]
 
     bm = "".join(f'<base name="{names[i]}" displaycolor="{_rrggbbaa(c)}"/>'
                  for i, c in enumerate(colors))
-    vtx = "".join(f'<vertex x="{x:.4f}" y="{y:.4f}" z="{z:.4f}"/>'
-                  for x, y, z in verts)
-    tri = "".join(
-        f'<triangle v1="{a}" v2="{b}" v3="{c}" pid="1" p1="{m}"/>'
-        for (a, b, c), m in zip(faces, fm))
 
+    IDENTITY = "1 0 0 0 1 0 0 0 1 0 0 0"
+    parts, comps, cfg_parts = [], [], []
+    for mi in range(len(colors)):
+        sel = faces[fm == mi]
+        if not len(sel):
+            continue
+        used, remap = np.unique(sel, return_inverse=True)
+        sub_v = verts[used]
+        sub_f = remap.reshape(sel.shape)
+        oid = 2 + len(parts)                       # 1 is the basematerials id
+
+        vtx = "".join(f'<vertex x="{x:.4f}" y="{y:.4f}" z="{z:.4f}"/>'
+                      for x, y, z in sub_v)
+        tri = "".join(f'<triangle v1="{a}" v2="{b}" v3="{c}"/>'
+                      for a, b, c in sub_f)
+        parts.append(
+            f'  <object id="{oid}" type="model" pid="1" pindex="{mi}">\n'
+            f'   <mesh><vertices>{vtx}</vertices>'
+            f'<triangles>{tri}</triangles></mesh>\n'
+            '  </object>\n')
+        comps.append(f'<component objectid="{oid}" transform="{IDENTITY}"/>')
+        cfg_parts.append(
+            f'  <part id="{oid}" subtype="normal_part">\n'
+            f'   <metadata key="name" value="{names[mi]}"/>\n'
+            f'   <metadata key="extruder" value="{mi + 1}"/>\n'
+            '  </part>\n')
+
+    asm = 2 + len(parts)                           # the assembly object id
     model = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<model unit="millimeter" xml:lang="en-US" '
         'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" '
         'xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02">\n'
         ' <metadata name="Application">playdoh-namelabel</metadata>\n'
+        ' <metadata name="BambuStudio:3mfVersion">1</metadata>\n'
         ' <resources>\n'
         f'  <basematerials id="1">{bm}</basematerials>\n'
-        '  <object id="2" type="model" pid="1" pindex="0">\n'
-        f'   <mesh><vertices>{vtx}</vertices>'
-        f'<triangles>{tri}</triangles></mesh>\n'
+        + "".join(parts) +
+        f'  <object id="{asm}" type="model">\n'
+        f'   <components>{"".join(comps)}</components>\n'
         '  </object>\n'
         ' </resources>\n'
-        ' <build><item objectid="2" '
-        'transform="1 0 0 0 1 0 0 0 1 0 0 0"/></build>\n'
+        f' <build><item objectid="{asm}" transform="{IDENTITY}"/></build>\n'
         '</model>\n')
+
+    settings = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<config>\n'
+        f' <object id="{asm}">\n'
+        f'  <metadata key="name" value="{object_name}"/>\n'
+        + "".join(cfg_parts) +
+        ' </object>\n'
+        '</config>\n')
 
     content_types = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\n'
         ' <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\n'
         ' <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>\n'
+        ' <Default Extension="config" ContentType="text/xml"/>\n'
         '</Types>\n')
     rels = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -275,6 +325,7 @@ def write_color_3mf(mesh, face_material, colors, path, names=None):
         z.writestr("[Content_Types].xml", content_types)
         z.writestr("_rels/.rels", rels)
         z.writestr("3D/3dmodel.model", model)
+        z.writestr("Metadata/model_settings.config", settings)
 
 
 def polar_disk_relief(mask, radius, relief, n_theta, thetas, start_index,

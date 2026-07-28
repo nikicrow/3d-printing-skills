@@ -40,7 +40,7 @@ border_color = "#f2ead6"; // color
 
 /* [Theme icon] */
 // A little themed shape leading the name (none = name only)
-icon = "none"; // [none, bee, heart, star, flower, paw, cat, apple, car, truck, banana]
+icon = "none"; // [none, bee, heart, star, flower, paw, cat, apple, car, truck, banana, brontosaurus, trex, circle, square, triangle]
 // Icon size relative to the letter height (1 = same cap height)
 icon_scale = 1.15; // [0.6:0.05:1.8]
 
@@ -59,6 +59,12 @@ font_h = 2.0;          // [0.8:0.2:4.0]
 // lifts the first-layer edge off the bed (less elephant-foot) and removes the
 // sharp top arris, so the label prints and pops off cleaner.
 bevel = 0.6;           // [0:0.1:1.5]
+// Facets used to approximate the chamfer. Each step adds two more inset slabs
+// to the union, and that union is what costs render time — 1 gives a plain 45°
+// facet, which is plenty at this size. Raise it only for a rounder edge, and
+// only on the Manifold backend (OpenSCAD 2023+/MakerWorld); on the old CGAL
+// backend each extra step roughly doubles the render.
+bevel_steps = 1;       // [1:1:4]
 
 /* [Keychain] */
 // Add a tab with a hole for a clasp / split ring
@@ -179,7 +185,7 @@ module base_shape2d() {
 }
 
 module base_part() {                     // bottom band = border colour
-    bevel_extrude(border_h, bevel) base_shape2d();
+    bevel_extrude(border_h, bevel, bevel_steps) base_shape2d();
 }
 
 module name_part() {                     // top band = name colour (letters+icon)

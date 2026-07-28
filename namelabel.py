@@ -66,7 +66,8 @@ FONTS = {
     "Bubblegum Sans": "BubblegumSans.ttf",
 }
 ICONS = ["none", "bee", "heart", "star", "flower", "paw", "cat", "apple",
-         "car", "truck", "banana"]
+         "car", "truck", "banana", "brontosaurus", "trex", "circle", "square",
+         "triangle"]
 ICON_VB = {"bee": 32}   # SVG viewBox px; the rest are 24
 
 

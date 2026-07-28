@@ -25,7 +25,7 @@ exports locally *and* uploads to MakerWorld as a customisable multicolour model.
 
 ```bash
 # install dependencies (one time)
-pip install trimesh numpy pillow matplotlib svgpathtools pydantic --break-system-packages
+pip install trimesh numpy pillow matplotlib svgpathtools pydantic scipy --break-system-packages
 
 # make a preview + printable STL (each tool takes --name; roller also takes --theme)
 python playdoh_roller.py  --name "Imogen" --theme shapes --preview --stl
@@ -84,10 +84,11 @@ one new `*.py` with its own `Config` + a couple of shared calls.
 
 ## The two-colour name label (multicolour done the reliable way)
 
-Generic 3MFs from a mesh pipeline don't carry colour into Bambu Studio
+A naive 3MF from a mesh pipeline doesn't carry colour into Bambu Studio
 reliably — which is why the earlier multicolour scraper attempt fell flat. The
-name label sidesteps that entirely by being **parametric OpenSCAD** and by
-**splitting the two colours by height**:
+name label solves that two ways: it **splits the two colours by height**, and it
+writes each colour as its own 3MF part with *both* a standard material and a
+Bambu-native extruder assignment. The height split is the important half:
 
 - **Bottom band** (`0 .. border_h`) = the border colour — the full rounded
   "trace" outline + keychain tab.
@@ -100,14 +101,17 @@ routes:
 
 - **One extruder** (A1/P1/X1, no AMS): print the **STL** with a single **filament
   change at `Z = border_h`** (printed on export, default 1.6 mm).
-- **AMS / MakerWorld**: the **two `color()` parts** export as *border* + *name*;
-  assign a filament to each (needs OpenSCAD **2024+** for colour-in-3MF, which is
-  what MakerWorld runs).
+- **AMS**: `playdoh_label.py --3mf` writes *border* + *name* as two parts already
+  pinned to extruder 1 and 2 — import and print. (The OpenSCAD route exports the
+  same two `color()` parts but needs **2024+** for colour-in-3MF, which is what
+  MakerWorld runs.)
 
 The base plate is **one connected piece** (a hidden connector web in the base
 ties the tab, icon and name together), so nothing prints loose. A small **45°
 bevel** on the plate edges (`bevel`, default 0.6 mm) lifts the first-layer edge
-off the bed (less elephant-foot) and removes the sharp top arris.
+off the bed (less elephant-foot) and removes the sharp top arris. It is free in
+the standalone pipeline; on the OpenSCAD side it costs real render time — see
+[`SKILL_label.md`](SKILL_label.md) before uploading to MakerWorld.
 
 There are **two interchangeable pipelines** for the same design:
 
@@ -116,12 +120,16 @@ There are **two interchangeable pipelines** for the same design:
 python namelabel.py    --name "Ember"  --icon bee   --preview --stl
 
 # 2) Standalone pipeline — pure trimesh, writes a native multicolour 3MF
-#    (per-triangle materials Bambu Studio parses) with NO OpenSCAD needed:
+#    (two coloured parts Bambu Studio reads directly) with NO OpenSCAD needed:
 python playdoh_label.py --name "Imogen" --icon heart --3mf
 ```
 
 Use pipeline 1 to post a customisable model to MakerWorld; use pipeline 2 to get
-a ready-to-slice two-colour 3MF locally.
+a ready-to-slice two-colour 3MF locally. They share a naming scheme and pipeline
+2 suffixes its outputs `_mesh`, so running both on one name is safe.
+
+To generate a label for every child on the party list at once, see
+[`_batch_labels.sh`](_batch_labels.sh).
 
 ### Post it on MakerWorld as a customisable model
 
@@ -132,8 +140,9 @@ two `// color` hex variables become colour pickers. Zip **`label.scad` with the
 and upload — anyone can then type a name, pick a font/colours/icon and print in
 colour. Full guidance in [`SKILL_label.md`](SKILL_label.md).
 
-Six bubbly fonts are bundled (Baloo 2, Bagel Fat One, Titan One, Chewy, Lilita
-One, Bubblegum Sans — all OFL/Apache, see
+Seven bubbly fonts are bundled (Grandstander — the default, a static Bold
+instance baked from the variable font — plus Baloo 2, Bagel Fat One, Titan One,
+Chewy, Lilita One, Bubblegum Sans; all OFL/Apache, see
 [`assets/fonts/ATTRIBUTION.md`](assets/fonts/ATTRIBUTION.md)).
 
 ---
