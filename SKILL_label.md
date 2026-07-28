@@ -181,9 +181,28 @@ The icon leads the name (`[hole] [icon] [NAME]`). It is imported from
 normalised to the letter height, and raised in the name colour on top of the
 border plate. To add an icon: drop a bold silhouette SVG in `assets/`, record it
 in `assets/ATTRIBUTION.md`, and add its name to the `icon` lists in **all three**
-of `label.scad`, `namelabel.py` and `playdoh_label.py` (plus its viewBox size in
-`icon_vb` / `ICON_VB` if it isn't 24×24). An SVG sitting in `assets/` that is
-missing from those lists simply won't be offered.
+of `label.scad`, `namelabel.py` and `playdoh_label.py`. An SVG sitting in
+`assets/` that is missing from those lists simply won't be offered.
+
+Then add a row to **`icon_vb_table` in `label.scad`** with the SVG's `viewBox`
+side. OpenSCAD imports an SVG at its viewBox units, so this is what normalises
+the art to the letter height — a 128-unit icon left to the 24 default comes out
+over five times too big and swallows the whole label. The Python pipelines need
+no such table: `rasterize_svg` reads each file's viewBox itself.
+
+The bundled icons are a mix of `128` (apple, banana, car, truck, trex,
+brontosaurus), `32` (bee), `24` (cat, circle, flower, heart, square, star,
+triangle) and `15` (paw), so don't assume.
+
+> **The two pipelines don't composite icons identically.** `rasterize_svg` is
+> called with `mode="union"`, flattening every sub-path into one solid
+> silhouette. OpenSCAD's `import()` has no such option and fills by the SVG's own
+> rule, so the multi-part Noto emoji art (apple, banana, car, truck, **trex**,
+> **brontosaurus**) keeps its internal colour-separation paths as holes and reads
+> as a fussier, more fragmented shape — most visibly on the dinosaurs. The
+> single-path 24-unit icons (heart, star, circle, square, triangle, cat, flower)
+> and the bee look the same either way. For a MakerWorld upload, prefer the
+> single-path icons, or pre-flatten the art to one path before bundling it.
 
 ## Fonts
 

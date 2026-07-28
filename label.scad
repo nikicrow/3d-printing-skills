@@ -88,7 +88,19 @@ CAP_RATIO = 0.72;
 text_size = letter_height / CAP_RATIO;
 
 // Bundled SVG icon viewBox size (px) so every icon normalises to letter height.
-function icon_vb(n) = (n == "bee") ? 32 : 24;   // the rest are 24x24
+// OpenSCAD imports an SVG at its viewBox units, so this is the divisor that
+// scales the art into `icon_w` mm — and a wrong entry mis-sizes the icon by the
+// ratio of the two (a 128-unit icon treated as 24 comes out >5x too big). Every
+// bundled icon is listed; add a row whenever you add an SVG.
+icon_vb_table = [
+    ["apple", 128], ["banana", 128], ["bee", 32], ["brontosaurus", 128],
+    ["car", 128], ["cat", 24], ["circle", 24], ["flower", 24], ["heart", 24],
+    ["paw", 15], ["square", 24], ["star", 24], ["trex", 128],
+    ["triangle", 24], ["truck", 128],
+];
+function icon_vb(n) =
+    let (hit = search([n], icon_vb_table)[0])
+    (is_undef(hit) || hit == []) ? 24 : icon_vb_table[hit][1];
 icon_w = letter_height * icon_scale;             // ~square icon footprint (mm)
 gap    = border_width;                           // small gap; the border merges
 

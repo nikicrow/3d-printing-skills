@@ -68,7 +68,9 @@ FONTS = {
 ICONS = ["none", "bee", "heart", "star", "flower", "paw", "cat", "apple",
          "car", "truck", "banana", "brontosaurus", "trex", "circle", "square",
          "triangle"]
-ICON_VB = {"bee": 32}   # SVG viewBox px; the rest are 24
+# No viewBox table here on purpose: rasterize_svg reads each file's own viewBox
+# and normalises the art to the requested size. Only label.scad needs one (see
+# `icon_vb_table` there), because OpenSCAD imports an SVG at its viewBox units.
 
 
 def _out_path(out_dir, subdir, filename):
