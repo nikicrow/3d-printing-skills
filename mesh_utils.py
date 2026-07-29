@@ -106,11 +106,14 @@ def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
     flip_y : bool, optional
         If ``True`` (default), row 0 maps to the *top* (larger Y), matching
         image convention so text/icons come out upright.
-    bevel : float, optional
-        45° chamfer depth in mm on the top and bottom caps (``0`` = square
-        edges, the default). Clamped to just under half the extrusion height so
-        the two chamfers never cross. Needs ``scipy``; without it the chamfer
-        is skipped and the prism comes out square-edged.
+    bevel : float or (float, float), optional
+        45° chamfer depth in mm (``0`` = square edges, the default). A scalar
+        chamfers both caps; a ``(bottom, top)`` pair chamfers them
+        independently, which is how the label's raised name gets a softened top
+        while its base stays full-section and fuses flush with the plate below.
+        If the two chamfers would meet, both are scaled down to just fit. Needs
+        ``scipy``; without it the chamfer is skipped and the prism comes out
+        square-edged.
 
     Returns
     -------
@@ -137,16 +140,22 @@ def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
     # Cap heights: flat by default, ramped in from every edge when bevelling.
     zb = np.full(N, float(z_bottom))
     zt = np.full(N, float(z_top))
-    c = min(float(bevel), (z_top - z_bottom) / 2 - 1e-3)
-    if c > 0:
+    cb, ct = (bevel, bevel) if np.isscalar(bevel) else bevel
+    cb, ct = max(float(cb), 0.0), max(float(ct), 0.0)
+    room = (z_top - z_bottom) - 1e-3
+    if cb + ct > room:                                   # shrink to just fit
+        cb, ct = cb * room / (cb + ct), ct * room / (cb + ct)
+    if cb > 0 or ct > 0:
         try:
             dist_mm = _corner_edge_distance(M) * s        # (Hc, Wc), mm inward
         except ImportError:
             pass
         else:
-            inset = np.clip(c - dist_mm, 0.0, c).ravel()  # 45° => dz == dxy
-            zb += inset
-            zt -= inset
+            d = dist_mm.ravel()
+            if cb > 0:                                   # 45° => dz == dxy
+                zb += np.clip(cb - d, 0.0, cb)
+            if ct > 0:
+                zt -= np.clip(ct - d, 0.0, ct)
 
     verts = np.vstack([
         np.column_stack([flat, zb]),                     # [0:N]   bottom

@@ -37,9 +37,11 @@ the plate comes out square-edged.)
 3D PRINTING NOTES
 ----------------------------------------------------------------------------
   * Orientation : flat on the bed, name up (as exported). No supports.
-  * Edges       : the plate carries a 45° chamfer top and bottom (``--bevel``,
-                  0.6 mm default), which hides elephant-foot on the first layer
-                  and leaves no sharp arris for small hands.
+  * Edges       : the plate rim and the raised name each carry a 45° chamfer on
+                  their TOP face (``--bevel``, 0.3 mm default), so there is no
+                  sharp arris for small hands. Both undersides stay square: the
+                  plate keeps its full first-layer footprint for bed adhesion,
+                  and the letters meet the plate flush.
   * 2 colours   : the 3MF carries two materials (border, name). In Bambu Studio
                   assign a filament to each on import. Single-extruder: print the
                   STL with one filament change at Z = border_h (printed on export).
@@ -107,7 +109,7 @@ class LabelConfig(BaseModel):
     corner_round_mm: float = Field(1.5, ge=0)
     border_h_mm: float = Field(1.6, gt=0)
     font_h_mm: float = Field(2.0, gt=0)
-    bevel_mm: float = Field(0.6, ge=0)         # 45° chamfer on plate edges
+    bevel_mm: float = Field(0.3, ge=0)         # 45° chamfer on plate + name
     icon_scale: float = Field(1.15, gt=0)
 
     keychain: bool = True
@@ -268,17 +270,23 @@ def make_preview(cfg):
                   + f"   ({cfg.font})", fontsize=14, fontweight="bold")
     axt.set_xlabel("mm"); axt.set_ylabel("mm")
 
-    # side profile: two colour bands (border then name), showing the height
-    # split — and the 45° chamfer the mesh actually carries on the plate edges
-    w, b, h = 10.0, min(cfg.bevel_mm, cfg.border_h_mm / 2), cfg.border_h_mm
-    plate = [(b, 0), (w - b, 0), (w, b), (w, h - b), (w - b, h), (b, h),
-             (0, h - b), (0, b)]
+    # side profile: two colour bands (border then name), showing the height split
+    # — and the 45° chamfers the mesh actually carries, on the TOP face of each
+    # band only, both undersides staying square (flat on the bed / flush join)
+    w, h = 10.0, cfg.border_h_mm
+    b = min(cfg.bevel_mm, h)
+    plate = [(0, 0), (w, 0), (w, h - b), (w - b, h), (b, h), (0, h - b)]
     axp.add_patch(plt.Polygon(plate, closed=True, color=border_rgb, ec="0.4"))
-    axp.add_patch(plt.Rectangle((3, cfg.border_h_mm), 4, cfg.font_h_mm,
-                                color=name_rgb, ec="0.4"))
-    if b > 0:
-        axp.annotate(f"{cfg.bevel_mm:.1f} mm 45° chamfer", (w + 0.3, 0.05),
-                     fontsize=8, color="0.45")
+
+    nx0, nw, nt = 3.0, 4.0, cfg.total_h_mm
+    n = min(cfg.bevel_mm, cfg.font_h_mm)
+    name = [(nx0, h), (nx0 + nw, h), (nx0 + nw, nt - n), (nx0 + nw - n, nt),
+            (nx0 + n, nt), (nx0, nt - n)]
+    axp.add_patch(plt.Polygon(name, closed=True, color=name_rgb, ec="0.4"))
+    if cfg.bevel_mm > 0:
+        axp.annotate(f"{cfg.bevel_mm:.1f} mm 45° chamfer on both top faces — "
+                     "undersides square, so the plate keeps full bed contact",
+                     (0, -0.8), fontsize=8, color="0.45")
     axp.annotate(f"border band 0–{cfg.border_h_mm:.1f} mm",
                  (10.3, cfg.border_h_mm / 2), va="center", fontsize=9)
     axp.annotate(f"name band → {cfg.total_h_mm:.1f} mm",
@@ -286,7 +294,7 @@ def make_preview(cfg):
                  fontsize=9, color=tuple(name_rgb * 0.7))
     axp.annotate(f"filament change @ Z = {cfg.border_h_mm:.1f} mm",
                  (0, cfg.total_h_mm + 0.4), fontsize=9, color="0.3")
-    axp.set_xlim(-1, 26); axp.set_ylim(0, cfg.total_h_mm + 1.4)
+    axp.set_xlim(-1, 26); axp.set_ylim(-1.4, cfg.total_h_mm + 1.4)
     axp.set_aspect("equal"); axp.axis("off")
     axp.set_title("side profile — two colours split by height", fontsize=11)
 
@@ -307,13 +315,16 @@ def build_mesh(cfg):
     import trimesh
     cm, base, ppm = build_masks(cfg)
     s = 1.0 / ppm
-    # Only the border plate is chamfered — same as label.scad, where the raised
-    # name/icon keeps crisp vertical sides so the letterforms stay sharp.
+    # Both bands are chamfered on their TOP face only. The plate keeps a square
+    # underside so the first layer lays down its full footprint (a chamfer there
+    # would shrink the bed contact patch and hurt adhesion), and the name keeps a
+    # square base so the letters meet the plate flush instead of tapering away
+    # from it and leaving a groove around every glyph.
     base_m = build_mask_prism(base, 0.0, cfg.border_h_mm, s,
-                              bevel=cfg.bevel_mm)
+                              bevel=(0.0, cfg.bevel_mm))
     # name overlaps the base plane slightly so the two fuse into one solid
     name_m = build_mask_prism(cm, cfg.border_h_mm - 0.01,
-                              cfg.total_h_mm, s)
+                              cfg.total_h_mm, s, bevel=(0.0, cfg.bevel_mm))
     combo = trimesh.util.concatenate([base_m, name_m])
     face_mat = np.concatenate([np.zeros(len(base_m.faces), int),
                                np.ones(len(name_m.faces), int)])

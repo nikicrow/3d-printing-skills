@@ -26,8 +26,21 @@ There are **two interchangeable pipelines** for the same label design:
    `mesh_utils.build_mask_prism` / `mesh_utils.write_color_3mf`. Its outputs are
    `_mesh`-suffixed so the two pipelines never overwrite each other.
 
-Both produce the identical design; the sections below describe the parameters
+Both produce the same *design*; the sections below describe the parameters
 (shared by both) and the MakerWorld flow.
+
+> ⚠️ **Known bug: they do not produce the same SIZE.** `CAP_RATIO = 0.72`
+> converts the requested cap height into a font size, but PIL and OpenSCAD do
+> not mean the same thing by "size" — PIL takes it as the em, OpenSCAD as
+> roughly the ascent. Measured with `letter_height = 16`, an `I` in Grandstander
+> comes out **14.75 mm** from `playdoh_label.py` and **20.68 mm** from
+> `label.scad`: a 40% divergence, and neither hits the requested 16 mm. Whole
+> labels differ accordingly (Imogen + heart is 113 × 23 mm as a mesh, 144 × 34 mm
+> from OpenSCAD). Until this is fixed, treat `--letter-height` as a relative
+> dial, don't mix output from the two pipelines in one batch, and re-check the
+> printed size before committing to a full run. Fixing it means calibrating a
+> per-pipeline ratio from the font's real metrics (`fontTools` can read the OS/2
+> `sCapHeight`), which will change the size of every label generated so far.
 
 > **Waste-optimised two colours, by height.** The bottom band
 > (`0 .. border_h`) is the border colour: the full rounded outline + keychain
@@ -98,7 +111,7 @@ At least one of `--preview` / `--stl` / `--3mf` is required.
 | `--corner-round` | `1.5` | Rounding of the border outline (bubblier = higher), mm |
 | `--border-h` | `1.6` | **Bottom** band thickness (border colour), mm |
 | `--font-h` | `2.0` | **Top** band thickness (name colour), mm |
-| `--bevel` | `0.6` | 45° chamfer on the plate's top/bottom edges, mm (0 = square). Eases printing (less elephant-foot, no sharp arris). Free in `playdoh_label.py`; **expensive on old OpenSCAD** — see the render-cost note below. |
+| `--bevel` | `0.3` | 45° chamfer on the **top** face of the plate rim *and* of the raised name, mm (0 = square). Takes the sharp arris off every edge a small hand touches. Both undersides stay square — see below. Free in `playdoh_label.py`; **expensive on old OpenSCAD** — see the render-cost note. |
 | `--icon-scale` | `1.15` | Icon size relative to letter height |
 | `--no-keychain` | (off) | Omit the clasp tab + hole |
 | `--hole-d` | `5.0` | Clasp hole diameter, mm |
@@ -132,12 +145,17 @@ OpenSCAD **2021.01**, exporting `Imogen` + heart:
 
 | | render | STL |
 |---|---|---|
-| `bevel = 0` | 22 s | 2.9 MB |
-| `bevel = 0.6`, `bevel_steps = 1` | 105 s | 6.4 MB |
-| `bevel = 0.6`, `bevel_steps = 2` | 355 s | 9.9 MB |
+| `bevel = 0` (square) | 22 s | 2.9 MB |
+| **`bevel = 0.3`, `bevel_steps = 1` — the default** | **69 s** | **7.2 MB** |
+| `bevel = 0.6`, `bevel_steps = 1`, plate both faces | 105 s | 6.4 MB |
+| `bevel = 0.6`, `bevel_steps = 2`, plate both faces | 355 s | 9.9 MB |
 
-Each extra step roughly triples the render, which is why `bevel_steps` defaults
-to **1** — a single 45° facet, visually indistinguishable at a 0.6 mm chamfer.
+Two things drive that cost, and both are one slab per chamfered face per step.
+Going **top-face-only** removed a slab from the plate, which more than paid for
+adding one to the name — so the current default chamfers *more* of the model in
+*less* time than the earlier plate-only setting did. Extra `bevel_steps` are the
+expensive axis: each one roughly triples the render, which is why it defaults to
+**1**, a single 45° facet that is indistinguishable at 0.3 mm.
 
 (Re-measured on a second 2021.01 machine: 14 s at `bevel = 0` vs 78 s at
 `bevel = 0.6, bevel_steps = 1`. Absolute times are machine-dependent, but the
@@ -306,5 +324,15 @@ edge costs one distance transform and **zero** extra triangles.
 - **Icon orientation**: OpenSCAD auto-orients an imported SVG upright, so the
   icons must *not* be Y-mirrored to compensate. (They once were, which flipped
   every icon upside down.)
-- **Only the plate is chamfered.** The raised name and icon keep vertical sides
-  so the letterforms stay crisp; a chamfer there would eat into thin strokes.
+- **Chamfers are top-face only, on both bands.** The undersides are square on
+  purpose: a chamfer under the plate would shrink the first-layer footprint and
+  cost bed adhesion, and one under the name would taper the letters away from
+  the plate they stand on, leaving a groove around every glyph. `build_mask_prism`
+  takes `bevel` as either a scalar (both caps) or a `(bottom, top)` pair, and
+  `bevel_extrude` in `label.scad` takes matching `do_bottom` / `do_top` flags.
+  Keep the chamfer well under half the stroke width. At the default 16 mm cap
+  height, Grandstander strokes measure ~1.8 mm across (0.88 mm from centre to
+  edge, median), so a 0.3 mm chamfer still leaves ~1.2 mm of full-height top
+  face on the thinnest stroke. Push `--bevel` past ~0.8 mm and thin strokes
+  start meeting in a ridge instead of a flat top, and fine icon detail (the
+  bee's legs and antennae) tapers away entirely.

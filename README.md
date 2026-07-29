@@ -116,8 +116,9 @@ against them; see [`SKILL_label.md`](SKILL_label.md).)
 
 The base plate is **one connected piece** (a hidden connector web in the base
 ties the tab, icon and name together), so nothing prints loose. A small **45°
-bevel** on the plate edges (`bevel`, default 0.6 mm) lifts the first-layer edge
-off the bed (less elephant-foot) and removes the sharp top arris. It is free in
+chamfer** on the top face of the plate rim and of the raised name (`bevel`,
+default 0.3 mm) removes the sharp arris without touching either underside — the
+plate keeps its full first-layer footprint for bed adhesion. It is free in
 the standalone pipeline; on the OpenSCAD side it costs real render time — see
 [`SKILL_label.md`](SKILL_label.md) before uploading to MakerWorld.
 

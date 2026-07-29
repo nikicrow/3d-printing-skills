@@ -55,10 +55,12 @@ corner_round = 1.5;    // [0:0.5:6]
 border_h = 1.6;        // [0.8:0.2:4.0]
 // Top (name colour) layer thickness
 font_h = 2.0;          // [0.8:0.2:4.0]
-// 45° chamfer on the plate's top & bottom edges (0 = square). A small bevel
-// lifts the first-layer edge off the bed (less elephant-foot) and removes the
-// sharp top arris, so the label prints and pops off cleaner.
-bevel = 0.6;           // [0:0.1:1.5]
+// 45° chamfer on the TOP face of both bands — the plate rim and the raised
+// name. It takes the sharp arris off every edge a small hand touches. Both
+// undersides deliberately stay square: a chamfer under the plate would shrink
+// the first-layer footprint and cost bed adhesion, and one under the name would
+// taper the letters away from the plate, leaving a groove around every glyph.
+bevel = 0.3;           // [0:0.1:1.5]
 // Facets used to approximate the chamfer. Each step adds two more inset slabs
 // to the union, and that union is what costs render time — 1 gives a plain 45°
 // facet, which is plenty at this size. Raise it only for a rounder edge, and
@@ -167,23 +169,34 @@ module plate2d() {
     }
 }
 
-// A chamfered extrude that PRESERVES holes and concavity (unlike hull): the
-// top and bottom `c` mm are built as a short stack of inward-offset slabs,
+// A chamfered extrude that PRESERVES holes and concavity (unlike hull): each
+// chamfered face's `c` mm is built as a short stack of inward-offset slabs,
 // approximating a 45° bevel on every edge (outer rim and the keychain hole).
-module bevel_extrude(h, c, steps = 2) {
-    cc = min(c, h / 2 - 0.02);
+// `do_bottom` / `do_top` pick which faces get the chamfer. Both label bands use
+// top-only (see the `bevel` note above), but the module stays general.
+module bevel_extrude(h, c, steps = 1, do_bottom = true, do_top = true) {
+    faces = (do_bottom ? 1 : 0) + (do_top ? 1 : 0);
+    cc = (faces == 0) ? 0 : min(c, h / faces - 0.02);
+    cb = do_bottom ? cc : 0;
+    ct = do_top ? cc : 0;
     if (cc <= 0) {
         linear_extrude(height = h) children();
     } else {
         step = cc / steps;
-        translate([0, 0, cc - 0.01])               // full-section core
-            linear_extrude(height = h - 2 * cc + 0.02) children();
+        // Full-section core. It overlaps the chamfer slabs by 0.01 to avoid
+        // coincident faces, but only on a face that HAS one — otherwise the
+        // core would poke 0.01 mm past the model (and below Z=0 on the plate).
+        z0 = do_bottom ? cb - 0.01 : 0;
+        z1 = do_top ? h - ct + 0.01 : h;
+        translate([0, 0, z0]) linear_extrude(height = z1 - z0) children();
         for (k = [0 : steps - 1]) {
             inset = cc - k * step;                 // most eroded at the faces
-            translate([0, 0, k * step])            // bottom chamfer, rising
-                linear_extrude(height = step + 0.01) offset(r = -inset) children();
-            translate([0, 0, h - (k + 1) * step])  // top chamfer, falling
-                linear_extrude(height = step + 0.01) offset(r = -inset) children();
+            if (do_bottom)
+                translate([0, 0, k * step])            // bottom chamfer, rising
+                    linear_extrude(height = step + 0.01) offset(r = -inset) children();
+            if (do_top)                                // top chamfer, falling
+                translate([0, 0, h - (k + 1) * step - 0.01])
+                    linear_extrude(height = step + 0.01) offset(r = -inset) children();
         }
     }
 }
@@ -197,12 +210,13 @@ module base_shape2d() {
 }
 
 module base_part() {                     // bottom band = border colour
-    bevel_extrude(border_h, bevel, bevel_steps) base_shape2d();
+    bevel_extrude(border_h, bevel, bevel_steps, do_bottom = false)
+        base_shape2d();
 }
 
 module name_part() {                     // top band = name colour (letters+icon)
     translate([0, 0, border_h - EPS])
-        linear_extrude(height = font_h + EPS)
+        bevel_extrude(font_h + EPS, bevel, bevel_steps, do_bottom = false)
             content2d();
 }
 

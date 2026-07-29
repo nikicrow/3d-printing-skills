@@ -103,7 +103,7 @@ class LabelConfig(BaseModel):
     corner_round_mm: float = Field(1.5, ge=0)
     border_h_mm: float = Field(1.6, gt=0)      # bottom band thickness
     font_h_mm: float = Field(2.0, gt=0)        # top band thickness
-    bevel_mm: float = Field(0.6, ge=0)         # 45° chamfer on plate edges
+    bevel_mm: float = Field(0.3, ge=0)         # 45° chamfer on plate + name
     icon_scale: float = Field(1.15, gt=0)
 
     keychain: bool = True
