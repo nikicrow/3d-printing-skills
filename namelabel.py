@@ -24,11 +24,11 @@ even a single-extruder Bambu prints it perfectly with ONE filament change at
 USAGE
 -----
     # colour preview PNG:
-    python namelabel.py --name "Ember" --icon bee --preview
+    python namelabel.py --name "Ember" --icon flower --preview
 
     # print-ready files (needs OpenSCAD on PATH):
     python namelabel.py --name "Imogen" --font "Bagel Fat One" --icon heart --stl
-    python namelabel.py --name "Ember" --icon bee --3mf
+    python namelabel.py --name "Ember" --icon flower --3mf
 
 DEPENDENCIES
 ------------

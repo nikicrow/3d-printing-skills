@@ -33,7 +33,7 @@ python playdoh_stamp.py    --name "Imogen" --preview --stl
 python playdoh_scraper.py  --name "Imogen" --preview --stl
 
 # two-colour keychain name label (needs OpenSCAD for --stl/--3mf; --preview doesn't)
-python namelabel.py --name "Ember"  --icon bee   --preview --stl
+python namelabel.py --name "Ember"  --icon flower --preview --stl
 python namelabel.py --name "Imogen" --icon heart --font "Bagel Fat One" --preview --3mf
 ```
 
@@ -126,7 +126,7 @@ There are **two interchangeable pipelines** for the same design:
 
 ```bash
 # 1) MakerWorld pipeline — parametric label.scad, exported via OpenSCAD:
-python namelabel.py    --name "Ember"  --icon bee   --preview --stl
+python namelabel.py    --name "Ember"  --icon flower --preview --stl
 
 # 2) Standalone pipeline — pure trimesh, writes a native multicolour 3MF
 #    (two coloured parts Bambu Studio reads directly) with NO OpenSCAD needed:

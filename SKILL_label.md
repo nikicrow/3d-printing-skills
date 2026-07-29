@@ -9,7 +9,7 @@ Makes a robust little **name tag / keychain** for a kid's school bag or a party
 favour: the name in a **cute bubbly font** (Grandstander, Baloo 2, Bagel Fat One,
 Titan One, Chewy, Lilita One, Bubblegum Sans) sits **raised on top** of a
 contrasting rounded **"trace" border**, with a hole for a split-ring/clasp and an
-optional **theme icon** (a bee on Ember's, a heart on Imogen's, ...).
+optional **theme icon** (a flower on Ember's, a heart on Imogen's, ...).
 
 There are **two interchangeable pipelines** for the same label design:
 
@@ -85,11 +85,11 @@ it `--bevel` silently becomes a no-op and the plate comes out square-edged.
 
 ```
 # fast colour preview PNG (no OpenSCAD needed):
-python namelabel.py --name "Ember" --icon bee --preview
+python namelabel.py --name "Ember" --icon flower --preview
 
 # print-ready files (needs OpenSCAD on PATH):
 python namelabel.py --name "Imogen" --icon heart --font "Bagel Fat One" --stl
-python namelabel.py --name "Ember"  --icon bee   --3mf
+python namelabel.py --name "Ember"  --icon flower --3mf
 
 # custom colours (top layer = letters, bottom layer = border):
 python namelabel.py --name "Imogen" --name-color "#c0392b" --border-color "#ffffff" --preview

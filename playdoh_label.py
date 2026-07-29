@@ -21,7 +21,7 @@ in the base ties the tab, icon and name together).
 USAGE
 -----
     # colour preview PNG (top view + side profile):
-    python playdoh_label.py --name "Ember" --icon bee --preview
+    python playdoh_label.py --name "Ember" --icon flower --preview
 
     # printable multicolour 3MF (+ STL):
     python playdoh_label.py --name "Imogen" --icon heart --3mf --stl
@@ -144,7 +144,7 @@ class LabelConfig(BaseModel):
     def stem(self) -> str:
         """Output basename, ``_mesh``-suffixed to stay out of OpenSCAD's way.
 
-        ``namelabel.py`` writes ``label_ember_bee.{stl,3mf}`` from the same
+        ``namelabel.py`` writes ``label_ember_flower.{stl,3mf}`` from the same
         parameters, so without the suffix whichever tool ran last would silently
         clobber the other's export. The preview PNGs already separate the two
         pipelines this way.
