@@ -27,6 +27,6 @@ gen Caleb   car            # trucks
 gen Grace   flower         # bees_and_flowers
 gen Beau    triangle       # shapes
 gen Billie  paw            # cats
-gen Indie   circle         # shapes
+gen Indie   heart          # shapes (same as Imogen, by request)
 gen Annie   flower         # bees_and_flowers
 echo "BATCH DONE"
