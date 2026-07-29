@@ -42,8 +42,303 @@ DEPENDENCIES
 """
 
 import math
+import os
+import zipfile
 
 import numpy as np
+
+
+def _corner_edge_distance(M):
+    """Distance (in pixels) from every corner-grid node to the mask's edge.
+
+    Helper for :func:`build_mask_prism`'s bevel. ``M`` is an ``(H, W)`` pixel
+    mask; the returned ``(H+1, W+1)`` array measures, for each *corner* of that
+    grid, how far it lies inside the solid. A corner is "inside" only when all
+    four pixels touching it are solid, so corners sitting on any silhouette
+    edge — the outer rim *and* the rim of every through-hole — get ``0``, and
+    the distance grows by one per pixel step inwards.
+
+    Requires ``scipy``; the caller falls back to a square (unbevelled) edge if
+    it is unavailable.
+    """
+    from scipy.ndimage import distance_transform_edt
+
+    H, W = M.shape
+    P = np.zeros((H + 2, W + 2), bool)                # pad: outside is empty
+    P[1:-1, 1:-1] = M
+    inside = P[:-1, :-1] & P[:-1, 1:] & P[1:, :-1] & P[1:, 1:]   # (H+1, W+1)
+    return distance_transform_edt(inside)
+
+
+def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
+                     flip_y=True, bevel=0.0):
+    """Extrude a binary mask into a watertight prism (with through-holes).
+
+    The planar analogue used by the name-label tool: every *truthy* pixel of
+    ``mask`` becomes a little column of solid between ``z_bottom`` and
+    ``z_top``; *falsy* pixels are empty, so interior gaps (a keychain hole, the
+    counter of an "o") come out as real through-holes — something a
+    single-valued heightfield (:func:`build_prism_between`) cannot do.
+
+    Vertices are shared on a corner grid, so the top cap, bottom cap and the
+    vertical walls at every on/off boundary close into a single watertight
+    solid with no booleans. Edges are stair-stepped at the pixel scale, so pick
+    ``mm_per_px`` fine enough for the feature detail you need (the mask is
+    normally rasterised with rounded offsets, which hides the stepping).
+
+    With ``bevel > 0`` the top and bottom caps are ramped down to meet the
+    walls, giving a 45° chamfer on every edge — the mesh-native equivalent of
+    ``label.scad``'s ``bevel_extrude``, but built by *moving cap vertices in Z*
+    rather than by unioning inset slabs, so it costs one distance transform
+    instead of a boolean stack and adds no triangles at all.
+
+    Parameters
+    ----------
+    mask : numpy.ndarray or PIL.Image.Image
+        2-D mask; truthy (``> 0``) pixels are solid. Axis 0 (rows) maps to Y,
+        axis 1 (columns) to X.
+    z_bottom, z_top : float
+        Bottom and top Z of the extrusion, in mm (``z_top > z_bottom``).
+    mm_per_px : float
+        Size of one pixel in mm (``1 / ppm``).
+    x0, y0 : float, optional
+        World XY of the mask's ``(0, 0)`` corner, in mm. Defaults to ``0``.
+    flip_y : bool, optional
+        If ``True`` (default), row 0 maps to the *top* (larger Y), matching
+        image convention so text/icons come out upright.
+    bevel : float or (float, float), optional
+        45° chamfer depth in mm (``0`` = square edges, the default). A scalar
+        chamfers both caps; a ``(bottom, top)`` pair chamfers them
+        independently, which is how the label's raised name gets a softened top
+        while its base stays full-section and fuses flush with the plate below.
+        If the two chamfers would meet, both are scaled down to just fit. Needs
+        ``scipy``; without it the chamfer is skipped and the prism comes out
+        square-edged.
+
+    Returns
+    -------
+    trimesh.Trimesh
+        The extruded solid, ``process=False`` — the topology guarantees a
+        watertight, consistently outward-wound mesh, so no repair pass is
+        needed before export.
+    """
+    import trimesh
+
+    M = np.asarray(mask) > 0
+    H, W = M.shape
+    Wc, Hc = W + 1, H + 1
+    s = float(mm_per_px)
+
+    ii = np.arange(Wc)
+    jj = np.arange(Hc)
+    gx = x0 + ii * s
+    gy = (y0 + (H - jj) * s) if flip_y else (y0 + jj * s)
+    GX, GY = np.meshgrid(gx, gy)                      # (Hc, Wc)
+    N = Hc * Wc
+    flat = np.stack([GX.ravel(), GY.ravel()], axis=1)
+
+    # Cap heights: flat by default, ramped in from every edge when bevelling.
+    zb = np.full(N, float(z_bottom))
+    zt = np.full(N, float(z_top))
+    cb, ct = (bevel, bevel) if np.isscalar(bevel) else bevel
+    cb, ct = max(float(cb), 0.0), max(float(ct), 0.0)
+    room = (z_top - z_bottom) - 1e-3
+    if cb + ct > room:                                   # shrink to just fit
+        cb, ct = cb * room / (cb + ct), ct * room / (cb + ct)
+    if cb > 0 or ct > 0:
+        try:
+            dist_mm = _corner_edge_distance(M) * s        # (Hc, Wc), mm inward
+        except ImportError:
+            pass
+        else:
+            d = dist_mm.ravel()
+            if cb > 0:                                   # 45° => dz == dxy
+                zb += np.clip(cb - d, 0.0, cb)
+            if ct > 0:
+                zt -= np.clip(ct - d, 0.0, ct)
+
+    verts = np.vstack([
+        np.column_stack([flat, zb]),                     # [0:N]   bottom
+        np.column_stack([flat, zt])])                    # [N:2N]  top
+
+    def ci(j, i):
+        return j * Wc + i                             # bottom corner index
+
+    js, is_ = np.where(M)
+    a, b = ci(js, is_), ci(js, is_ + 1)
+    c, d = ci(js + 1, is_ + 1), ci(js + 1, is_)
+    A, B, C, D = a + N, b + N, c + N, d + N
+    faces = [
+        np.stack([A, C, B], 1), np.stack([A, D, C], 1),   # top cap
+        np.stack([a, b, c], 1), np.stack([a, c, d], 1),   # bottom cap
+    ]
+
+    def _bound(shifted):
+        return M & ~shifted
+
+    left = np.zeros_like(M); left[:, 1:] = M[:, :-1]
+    right = np.zeros_like(M); right[:, :-1] = M[:, 1:]
+    up = np.zeros_like(M); up[1:, :] = M[:-1, :]
+    down = np.zeros_like(M); down[:-1, :] = M[1:, :]
+
+    def wall(p0, p1):
+        """Quad p0 -> p1 -> p1_top -> p0_top; its normal follows p0 -> p1."""
+        return np.concatenate([np.stack([p0, p1, p1 + N], 1),
+                               np.stack([p0, p1 + N, p0 + N], 1)])
+
+    # Each wall is traversed so its normal points *out* of the solid: with row 0
+    # at the top (flip_y), that means walking a left/down edge forwards and a
+    # right/up edge backwards. Getting these consistent keeps the exported STL
+    # and 3MF spec-correct (outward CCW) instead of relying on slicer repair.
+    lj, li = np.where(_bound(left))
+    faces.append(wall(ci(lj, li), ci(lj + 1, li)))
+    rj, ri = np.where(_bound(right))
+    faces.append(wall(ci(rj + 1, ri + 1), ci(rj, ri + 1)))
+    uj, ui = np.where(_bound(up))
+    faces.append(wall(ci(uj, ui + 1), ci(uj, ui)))
+    dj, di = np.where(_bound(down))
+    faces.append(wall(ci(dj + 1, di), ci(dj + 1, di + 1)))
+
+    return trimesh.Trimesh(vertices=verts, faces=np.concatenate(faces),
+                           process=False)
+
+
+def _rrggbbaa(hexcolor):
+    """Normalise ``#rgb`` / ``#rrggbb`` to an upper-case ``#RRGGBBFF`` string."""
+    c = hexcolor.lstrip("#")
+    if len(c) == 3:
+        c = "".join(ch * 2 for ch in c)
+    return "#" + c.upper() + "FF"
+
+
+def write_color_3mf(mesh, face_material, colors, path, names=None,
+                    object_name=None):
+    """Write a multi-colour 3MF that both generic slicers and Bambu Studio read.
+
+    The mesh is split into one 3MF ``<object>`` per material and those are
+    assembled as ``<components>`` of a single build item, so the label arrives
+    as *one* object made of coloured parts you can still move as a unit. Two
+    independent colour declarations ride along, because slicers disagree about
+    which one they read:
+
+    * **Core 3MF material extension** — a ``<basematerials>`` group holds one
+      entry per colour and each part object carries ``pid``/``pindex``. This is
+      what a conformant reader (PrusaSlicer, Cura, the Windows 3D viewer, and
+      Bambu Studio's "Standard 3MF File Color Parsing") uses.
+    * **Bambu/Orca native ``Metadata/model_settings.config``** — names each
+      part and pins it to an extruder. Bambu Studio prefers this when present,
+      so the label comes in already split across filaments with nothing to
+      assign by hand.
+
+    Declaring the material per *object* rather than per *triangle* also keeps
+    the file small: a half-million-triangle label would otherwise repeat a
+    ``pid``/``p1`` pair on every single triangle.
+
+    Parameters
+    ----------
+    mesh : trimesh.Trimesh
+        Combined geometry (e.g. the label's border plate + raised name).
+    face_material : sequence of int
+        Per-face material index (``len == len(mesh.faces)``), each into
+        ``colors``. Faces sharing an index become one coloured part.
+    colors : sequence of str
+        Hex colours (``#rgb`` or ``#rrggbb``), one per material index.
+    path : str
+        Output ``.3mf`` file path.
+    names : sequence of str, optional
+        Human-readable part names (defaults to ``material_0`` ...).
+    object_name : str, optional
+        Name for the assembled object (defaults to the file's stem).
+    """
+    verts = np.asarray(mesh.vertices, dtype=float)
+    faces = np.asarray(mesh.faces, dtype=int)
+    fm = np.asarray(face_material, dtype=int)
+    if names is None:
+        names = [f"material_{i}" for i in range(len(colors))]
+    if object_name is None:
+        object_name = os.path.splitext(os.path.basename(path))[0]
+
+    bm = "".join(f'<base name="{names[i]}" displaycolor="{_rrggbbaa(c)}"/>'
+                 for i, c in enumerate(colors))
+
+    IDENTITY = "1 0 0 0 1 0 0 0 1 0 0 0"
+    parts, comps, cfg_parts = [], [], []
+    for mi in range(len(colors)):
+        sel = faces[fm == mi]
+        if not len(sel):
+            continue
+        used, remap = np.unique(sel, return_inverse=True)
+        sub_v = verts[used]
+        sub_f = remap.reshape(sel.shape)
+        oid = 2 + len(parts)                       # 1 is the basematerials id
+
+        vtx = "".join(f'<vertex x="{x:.4f}" y="{y:.4f}" z="{z:.4f}"/>'
+                      for x, y, z in sub_v)
+        tri = "".join(f'<triangle v1="{a}" v2="{b}" v3="{c}"/>'
+                      for a, b, c in sub_f)
+        parts.append(
+            f'  <object id="{oid}" type="model" pid="1" pindex="{mi}">\n'
+            f'   <mesh><vertices>{vtx}</vertices>'
+            f'<triangles>{tri}</triangles></mesh>\n'
+            '  </object>\n')
+        comps.append(f'<component objectid="{oid}" transform="{IDENTITY}"/>')
+        cfg_parts.append(
+            f'  <part id="{oid}" subtype="normal_part">\n'
+            f'   <metadata key="name" value="{names[mi]}"/>\n'
+            f'   <metadata key="extruder" value="{mi + 1}"/>\n'
+            '  </part>\n')
+
+    asm = 2 + len(parts)                           # the assembly object id
+    # The BambuStudio: prefix on the 3mfVersion metadatum below must be a
+    # namespace declared here — the 3MF core spec requires it, and lib3mf (and
+    # so any strict reader) refuses to load the whole package without it.
+    model = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<model unit="millimeter" xml:lang="en-US" '
+        'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" '
+        'xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02" '
+        'xmlns:BambuStudio="http://schemas.bambulab.com/package/2021">\n'
+        ' <metadata name="Application">playdoh-namelabel</metadata>\n'
+        ' <metadata name="BambuStudio:3mfVersion">1</metadata>\n'
+        ' <resources>\n'
+        f'  <basematerials id="1">{bm}</basematerials>\n'
+        + "".join(parts) +
+        f'  <object id="{asm}" type="model">\n'
+        f'   <components>{"".join(comps)}</components>\n'
+        '  </object>\n'
+        ' </resources>\n'
+        f' <build><item objectid="{asm}" transform="{IDENTITY}"/></build>\n'
+        '</model>\n')
+
+    settings = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<config>\n'
+        f' <object id="{asm}">\n'
+        f'  <metadata key="name" value="{object_name}"/>\n'
+        + "".join(cfg_parts) +
+        ' </object>\n'
+        '</config>\n')
+
+    content_types = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\n'
+        ' <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\n'
+        ' <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>\n'
+        ' <Default Extension="config" ContentType="text/xml"/>\n'
+        '</Types>\n')
+    rels = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n'
+        ' <Relationship Target="/3D/3dmodel.model" Id="rel-1" '
+        'Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>\n'
+        '</Relationships>\n')
+
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", content_types)
+        z.writestr("_rels/.rels", rels)
+        z.writestr("3D/3dmodel.model", model)
+        z.writestr("Metadata/model_settings.config", settings)
 
 
 def polar_disk_relief(mask, radius, relief, n_theta, thetas, start_index,
