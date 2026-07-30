@@ -3,9 +3,9 @@
 Ready-to-slice files for the whole collection, split by type:
 
 - [`labels/`](labels) — two-colour **keychain name labels**, named
-  `label_<name>[_<icon>].{stl,3mf}`. A single connected, watertight solid ~3.6 mm
+  `label_<name>[_<icon>].{stl,3mf}`. A single connected, watertight solid ~4.0 mm
   thick (border band + raised name band). Print the **STL** with a filament
-  change at `Z = border_h` (1.6 mm), or the **3MF** as two colour parts on
+  change at `Z = border_h` (2.4 mm), or the **3MF** as two colour parts on
   AMS/MakerWorld. Regenerate/add with `namelabel.py --stl` / `--3mf`.
 - [`rollers/`](rollers) — texture rollers, named `roller_<name>_<theme>.stl`
   (plus Ember's `.3mf`). Each is a single watertight, upright, support-free

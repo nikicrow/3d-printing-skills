@@ -109,8 +109,8 @@ At least one of `--preview` / `--stl` / `--3mf` is required.
 | `--letter-height` | `16` | Cap height of the letters, mm |
 | `--border-width` | `3.0` | How far the border extends past the letters (trace thickness), mm |
 | `--corner-round` | `1.5` | Rounding of the border outline (bubblier = higher), mm |
-| `--border-h` | `1.6` | **Bottom** band thickness (border colour), mm |
-| `--font-h` | `2.0` | **Top** band thickness (name colour), mm |
+| `--border-h` | `2.4` | **Bottom** band thickness (border colour), mm |
+| `--font-h` | `1.6` | **Top** band thickness (name colour), mm |
 | `--bevel` | `0.3` | 45° chamfer on the **top** face of the plate rim *and* of the raised name, mm (0 = square). Takes the sharp arris off every edge a small hand touches. Both undersides stay square — see below. Free in `playdoh_label.py`; **expensive on old OpenSCAD** — see the render-cost note. |
 | `--icon-scale` | `1.15` | Icon size relative to letter height |
 | `--no-keychain` | (off) | Omit the clasp tab + hole |
@@ -118,8 +118,9 @@ At least one of `--preview` / `--stl` / `--3mf` is required.
 | `--hole-wall` | `2.5` | Ring wall between the hole and the tab edge, mm |
 | `--smoothness` | `72` | Curve facets (higher = smoother, slower) |
 
-Total thickness = `border_h + font_h` (default **3.6 mm** = 1.6 + 2.0) — minimal
-but robust enough to survive a school bag. Bump both a little for more strength.
+Total thickness = `border_h + font_h` (default **4.0 mm** = 2.4 + 1.6). The
+border plate is 50% thicker than the original 1.6 mm design, while the raised
+name stays slimmer for a cleaner, less bulky print.
 
 `--smoothness` applies to `namelabel.py` only; `playdoh_label.py` takes `--ppm`
 instead (mask resolution in px/mm, default `8`). `label.scad` additionally
@@ -180,7 +181,7 @@ no measurable time, so `playdoh_label.py --bevel` is always free.
 The label is a clean height split, so there are two easy routes:
 
 - **Single extruder (A1 / P1 / X1 with no AMS)** — import the **STL**, add **one
-  filament change at `Z = border_h`** (default **1.6 mm**, printed on export).
+  filament change at `Z = border_h`** (default **2.4 mm**, printed on export).
   Everything below is the border colour, everything above is the name colour.
 - **AMS / multi-filament** — use `playdoh_label.py --3mf` (any OpenSCAD, or
   none). The 3MF holds two parts, `border` and `name`, already pinned to

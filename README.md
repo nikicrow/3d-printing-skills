@@ -101,7 +101,7 @@ it barely adds any filament. And the clean split gives two dead-simple colour
 routes:
 
 - **One extruder** (A1/P1/X1, no AMS): print the **STL** with a single **filament
-  change at `Z = border_h`** (printed on export, default 1.6 mm).
+  change at `Z = border_h`** (printed on export, default 2.4 mm).
 - **AMS**: `playdoh_label.py --3mf` writes *border* + *name* as two parts already
   pinned to extruder 1 and 2 — import and print. (The OpenSCAD route exports the
   same two `color()` parts but needs **2024+** for colour-in-3MF, which is what

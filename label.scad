@@ -52,9 +52,9 @@ border_width = 3.0;    // [1.0:0.5:8.0]
 // Rounding of the border outline (bubblier = higher)
 corner_round = 1.5;    // [0:0.5:6]
 // Bottom (border colour) layer thickness
-border_h = 1.6;        // [0.8:0.2:4.0]
+border_h = 2.4;        // [0.8:0.2:4.0]
 // Top (name colour) layer thickness
-font_h = 2.0;          // [0.8:0.2:4.0]
+font_h = 1.6;          // [0.8:0.2:4.0]
 // 45° chamfer on the TOP face of both bands — the plate rim and the raised
 // name. It takes the sharp arris off every edge a small hand touches. Both
 // undersides deliberately stay square: a chamfer under the plate would shrink
