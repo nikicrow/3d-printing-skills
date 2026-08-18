@@ -111,6 +111,31 @@ def _font_for_visual_height(path: Path, target_px: int) -> ImageFont.FreeTypeFon
     return ImageFont.truetype(str(path), low)
 
 
+def _heal_diagonal_pinches(mask: np.ndarray) -> np.ndarray:
+    """Fill the corners where two glyph pixels touch only diagonally.
+
+    Such a corner extrudes into a pinch point: four wall quads meet on one
+    vertical edge, so the prism is no longer edge-manifold and the watertight
+    check fails. Filling one of the two empty pixels turns the touch into a
+    proper edge; at 5 px/mm that is a 0.2 mm nub inside an already stair-stepped
+    outline, which the slicer cannot resolve. Repeat until stable, because a
+    fill can create a new diagonal touch next door.
+    """
+    healed = mask.copy()
+    for _ in range(8):
+        a = healed[:-1, :-1]
+        b = healed[:-1, 1:]
+        c = healed[1:, :-1]
+        d = healed[1:, 1:]
+        down_right = a & d & ~b & ~c
+        down_left = b & c & ~a & ~d
+        if not (down_right.any() or down_left.any()):
+            break
+        healed[:-1, 1:] |= down_right
+        healed[:-1, :-1] |= down_left
+    return healed
+
+
 def build_layout(cfg: SignConfig) -> tuple[np.ndarray, float, float]:
     """Return a centred text mask and the matching base dimensions."""
     ppm = cfg.ppm
@@ -152,7 +177,8 @@ def build_layout(cfg: SignConfig) -> tuple[np.ndarray, float, float]:
             baseline_y = y + (row_h - line_h) / 2 - box[1]
             draw.text((round(x), round(baseline_y)), line, font=font, fill=255)
         y += row_h + gap
-    return np.asarray(image) >= 128, width_px / ppm, height_px / ppm
+    mask = _heal_diagonal_pinches(np.asarray(image) >= 128)
+    return mask, width_px / ppm, height_px / ppm
 
 
 def _rounded_rectangle_points(

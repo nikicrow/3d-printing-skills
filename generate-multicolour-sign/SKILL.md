@@ -44,10 +44,12 @@ padding to keep centred text clear of the hole.
 
 ## Verify output
 
-Confirm the command reports both meshes as watertight. Inspect the PNG for
-centering and line breaks. Print flat with the text facing up; no supports are
-required. Import the 3MF for a multi-material setup. Import both STLs at the
-same origin when assigning colours manually.
+Confirm the command reports both meshes as watertight. The rasterised text is
+healed first wherever two glyph pixels touch only at a corner, because such a
+corner extrudes into a non-manifold pinch point and fails that check. Inspect
+the PNG for centering and line breaks. Print flat with the text facing up; no
+supports are required. Import the 3MF for a multi-material setup. Import both
+STLs at the same origin when assigning colours manually.
 
 ## Assets
 
