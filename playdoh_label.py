@@ -161,7 +161,7 @@ def _hex(c):
 
 
 # ===========================================================================
-# MASKS  (shared by preview + mesh; same [hole][icon][NAME] layout as label.scad)
+# MASKS  (shared by preview + mesh; same [hole][NAME][icon] layout as label.scad)
 # ===========================================================================
 def build_masks(cfg):
     """Return ``(content, base)`` boolean masks + ``ppm`` for the label.
@@ -179,15 +179,13 @@ def build_masks(cfg):
     tw, th = bb[2] - bb[0], bb[3] - bb[1]
 
     icon_w = int(cfg.letter_height_mm * cfg.icon_scale * ppm) if cfg.icon != "none" else 0
-    gap = int(cfg.border_width_mm * ppm)
+    gap = int(cfg.border_width_mm * (2 / 3) * ppm)
     bw = int(cfg.border_width_mm * ppm)
     tab_r = (cfg.hole_d_mm / 2 + cfg.hole_wall_mm) * ppm
     # generous canvas; trimmed later
-    padL = int(tab_r * 2 + bw * 3) + icon_w + gap
-    padR = bw * 3 + 6
+    padL = int(tab_r * 2 + bw * 3)
+    padR = bw * 3 + 6 + (icon_w + gap if cfg.icon != "none" else 0)
     padV = int(max(th, icon_w, tab_r * 2) * 0.5 + bw * 3) + 6
-    lead = (icon_w + gap) if cfg.icon != "none" else 0
-
     W = padL + tw + padR
     H = max(th, icon_w) + 2 * padV
     name_org_x = padL                      # name left edge (x=0 world anchor)
@@ -200,7 +198,7 @@ def build_masks(cfg):
     if cfg.icon != "none":
         svg = os.path.join(ASSET_DIR, f"{cfg.icon}.svg")
         im = rasterize_svg(svg, icon_w, mode="union", margin=0.02)
-        content.paste(im, (name_org_x - lead, cy - icon_w // 2), im)
+        content.paste(im, (name_org_x + tw + gap, cy - icon_w // 2), im)
     cm = np.asarray(content) > 127
 
     # rounded outward offset (border trace) ≈ label.scad's offset(r)offset(delta)
@@ -215,7 +213,7 @@ def build_masks(cfg):
     border = np.asarray(m) > 60
 
     yy, xx = np.mgrid[0:H, 0:W]
-    content_left = (name_org_x - lead) if cfg.icon != "none" else name_org_x
+    content_left = name_org_x
     if cfg.keychain:
         tab_cx = content_left - bw - tab_r * 0.6
         tab = (xx - tab_cx) ** 2 + (yy - cy) ** 2 <= tab_r ** 2
@@ -224,8 +222,15 @@ def build_masks(cfg):
     else:
         conn_x0 = content_left
     if cfg.keychain or cfg.icon != "none":
+        # Stop beneath the trailing icon's centre. Its own dilated silhouette
+        # supplies the remaining plate; running to the footprint edge makes the
+        # rounded spine stick out beyond rounded or inset icon artwork.
+        content_right = (name_org_x + tw + gap + icon_w
+                         if cfg.icon != "none" else name_org_x + tw)
+        if cfg.icon != "none":
+            content_right -= icon_w // 2
         band = (np.abs(yy - cy) <= bw) & (xx >= conn_x0) & \
-               (xx <= content_left + icon_w + gap)
+               (xx <= content_right)
         border = border | band
     # round the whole plate a touch so the connector/tab blend
     sm = Image.fromarray((border * 255).astype(np.uint8)).filter(

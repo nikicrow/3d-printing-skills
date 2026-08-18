@@ -1,0 +1,4 @@
+interface:
+  display_name: "Multicolour Text Sign"
+  short_description: "Generate scalable two-colour 3D text signs"
+  default_prompt: "Use $generate-multicolour-sign to create a centred, multiline, two-colour printable sign."
