@@ -8,6 +8,7 @@ exports locally *and* uploads to MakerWorld as a customisable multicolour model.
 
 | Tool | What it makes | Script |
 |---|---|---|
+| **Multicolour sign** | A scalable rounded plaque with centred, multiline Unkempt text: 4 mm black base, 1.5 mm white raised lettering, native two-part 3MF, separate STLs, and PNG preview. | [`generate-multicolour-sign/`](generate-multicolour-sign/) |
 | 🏷️ **Name label** | A cute, bubbly **two-colour keychain**: the name (+ optional theme icon) raised in one colour on a contrasting rounded "trace" border, with a clasp hole. Colours split by height to cut waste. Local **STL/3MF** *and* a MakerWorld parametric model. | [`label.scad`](label.scad) · [`namelabel.py`](namelabel.py) |
 | 🌀 **Roller** | A barrel with the name embossed lengthways + a themed pattern (bees, dinos, shapes, cats, fruits, trucks) that rolls a repeating imprint into the dough. | [`playdoh_roller.py`](playdoh_roller.py) |
 | 🔤 **Stamp** | A compact ~5 cm slab with a grippy cylinder handle that presses the name (and/or an icon) into the dough. Initial raised on the handle top. | [`playdoh_stamp.py`](playdoh_stamp.py) |
@@ -35,6 +36,9 @@ python playdoh_scraper.py  --name "Imogen" --preview --stl
 # two-colour keychain name label (needs OpenSCAD for --stl/--3mf; --preview doesn't)
 python namelabel.py --name "Ember"  --icon flower --preview --stl
 python namelabel.py --name "Imogen" --icon heart --font "Bagel Fat One" --preview --3mf
+
+# centred multiline sign (creates 3MF, separate STLs, and preview by default)
+python generate-multicolour-sign/scripts/generate_sign.py --text "hand\nwashing\nstation"
 ```
 
 `--preview` is fast (no `trimesh`); `--stl` builds the mesh and takes longer.

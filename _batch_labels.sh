@@ -29,4 +29,9 @@ gen Beau    triangle       # shapes
 gen Billie  paw            # cats
 gen Indie   heart          # shapes (same as Imogen, by request)
 gen Annie   flower         # bees_and_flowers
+gen Ambrose trex           # dinosaurs
+gen Chloe   flower         # bees_and_flowers
+gen Piper   star           # shapes
+gen Eliza   flower         # bees_and_flowers
+gen Alexis  heart          # shapes
 echo "BATCH DONE"

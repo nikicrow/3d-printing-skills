@@ -104,10 +104,13 @@ function icon_vb(n) =
     let (hit = search([n], icon_vb_table)[0])
     (is_undef(hit) || hit == []) ? 24 : icon_vb_table[hit][1];
 icon_w = letter_height * icon_scale;             // ~square icon footprint (mm)
-gap    = border_width;                           // small gap; the border merges
+gap    = border_width * 2/3;                     // tighter name-to-icon gap
+// Older OpenSCAD releases have no textmetrics(), so estimate the rendered
+// rounded-font name width for placing the trailing icon.
+name_w = len(name) * text_size * 0.58;
 
-// Left edge of the "content" (name, or icon if present), in mm.
-content_left = (icon == "none") ? 0 : -(icon_w + gap);
+// Left edge of the content (always the name), in mm.
+content_left = 0;
 // Keychain tab geometry, anchored just left of the content.
 tab_r  = hole_d/2 + hole_wall;
 tab_cx = content_left - border_width - tab_r*0.6;
@@ -124,8 +127,8 @@ module icon2d() {
         s = icon_w / icon_vb(icon);              // px -> mm
         // OpenSCAD's SVG import already orients the art upright (Y is handled),
         // so scale uniformly — no extra mirror. Centre the icon footprint on
-        // (content_left + icon_w/2, 0).
-        translate([content_left + icon_w/2, 0])
+        // after the estimated right edge of the name.
+        translate([name_w + gap + icon_w/2, 0])
             scale([s, s])
                 import(str("assets/", icon, ".svg"), center = true);
     }
@@ -148,7 +151,12 @@ module tab_hole() { translate([tab_cx, 0]) circle(d = hole_d); }
 module connector2d() {
     if (keychain || icon != "none") {
         x0 = keychain ? tab_cx : content_left;
-        x1 = text_size * 0.40;              // reach safely inside the 1st glyph
+        // Stop beneath the centre of the trailing icon. The icon's own border
+        // trace provides the rest of its plate; carrying the spine to the
+        // footprint edge makes the offset spine poke out past rounded/inset art.
+        x1 = (icon == "none")
+            ? name_w
+            : name_w + gap + icon_w / 2;
         translate([x0, -border_width * 0.25])
             square([x1 - x0, border_width * 0.5]);
     }

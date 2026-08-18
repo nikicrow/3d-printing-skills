@@ -157,8 +157,8 @@ def _load_font(font_family, px):
 
 
 def _content_mask(cfg, ppm):
-    """Rasterise the raised silhouette (icon then name) to an L mask, matching
-    label.scad's ``[hole] [icon] [NAME ->]`` left-anchored layout."""
+    """Rasterise the raised silhouette (name then icon) to an L mask, matching
+    label.scad's ``[hole] [NAME ->] [icon]`` layout."""
     cap_ratio = 0.72
     em = (cfg.letter_height_mm / cap_ratio) * ppm
     font = _load_font(cfg.font, em)
@@ -167,23 +167,23 @@ def _content_mask(cfg, ppm):
     tw, th = bb[2] - bb[0], bb[3] - bb[1]
 
     icon_w = int(cfg.letter_height_mm * cfg.icon_scale * ppm)
-    gap = int(cfg.border_width_mm * ppm)            # matches label.scad
+    gap = int(cfg.border_width_mm * (2 / 3) * ppm)  # matches label.scad
     pad = int(cfg.border_width_mm * ppm) + 6
 
-    lead = (icon_w + gap) if cfg.icon != "none" else 0
-    W = lead + tw + 2 * pad
+    trail = (icon_w + gap) if cfg.icon != "none" else 0
+    W = tw + trail + 2 * pad
     H = max(th, icon_w) + 2 * pad
     img = Image.new("L", (W, H), 0)
     d = ImageDraw.Draw(img)
     # name
-    d.text((pad + lead - bb[0], (H - th) // 2 - bb[1]), cfg.name, font=font,
+    d.text((pad - bb[0], (H - th) // 2 - bb[1]), cfg.name, font=font,
            fill=255)
-    # icon (left of the name)
+    # icon (right of the name)
     if cfg.icon != "none":
         svg = os.path.join(ASSET_DIR, f"{cfg.icon}.svg")
         im = rasterize_svg(svg, icon_w, mode="union", margin=0.02)
         iy = (H - icon_w) // 2
-        img.paste(im, (pad, iy), im)
+        img.paste(im, (pad + tw + gap, iy), im)
     return img
 
 
@@ -211,15 +211,14 @@ def make_preview(cfg):
     content = _content_mask(cfg, ppm)
     cm = np.asarray(content) > 127
     icon_w = int(cfg.letter_height_mm * cfg.icon_scale * ppm)
-    gap = int(cfg.border_width_mm * ppm)
     grow = int(cfg.border_width_mm * ppm)
     rnd = int(cfg.corner_round_mm * ppm)
     border = _round_dilate(content, grow, rnd)
 
     H, W = border.shape
     yy, xx = np.mgrid[0:H, 0:W]
-    # keychain tab on the left + a connector band along y=0 that fuses tab,
-    # icon and first letter into one plate (mirrors label.scad's connector).
+    # keychain tab on the left + a connector band along y=0 that fuses the tab
+    # to the first letter (mirrors label.scad's connector).
     hole = np.zeros((H, W), bool)
     cys, cxs = np.where(cm if cm.any() else border)
     left = cxs.min()
@@ -234,8 +233,17 @@ def make_preview(cfg):
     else:
         conn_x0 = left
     if cfg.keychain or cfg.icon != "none":
+        # End beneath the trailing icon's centre. Its dilated silhouette forms
+        # the rest of the plate; extending the band to the far edge makes its
+        # rounded border visibly protrude beyond inset/rounded icon artwork.
+        right = cxs.max()
+        if cfg.icon != "none":
+            pad = int(cfg.border_width_mm * ppm) + 6
+            icon_cx = W - pad - icon_w // 2
+            right = min(right, icon_cx)
         conn_h = max(1, cfg.border_width_mm * ppm)   # ~2·bw tall after this band
-        band = (np.abs(yy - cy) <= conn_h) & (xx >= conn_x0) & (xx <= left + icon_w + gap)
+        band = (np.abs(yy - cy) <= conn_h) & (xx >= conn_x0) & \
+               (xx <= right)
         border = border | band
 
     # light rounding pass so the connector band / tab blend smoothly

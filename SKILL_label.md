@@ -228,7 +228,8 @@ of your layer height so the colour change lands exactly on a layer boundary.
 
 ## Theme icons
 
-The icon leads the name (`[hole] [icon] [NAME]`). It is imported from
+The icon follows the name (`[hole] [NAME] [icon]`) with a compact gap of about
+2 mm at the default border width. It is imported from
 `assets/<icon>.svg` (the same open-licensed silhouettes the roller/stamp use),
 normalised to the letter height, and raised in the name colour on top of the
 border plate. To add an icon: drop a bold silhouette SVG in `assets/`, record it
@@ -292,7 +293,7 @@ pipelines carry the same one so their flags stay in step.
 In `namelabel.py` the geometry is **not** built in Python — it is delegated to
 `label.scad`, driven via `openscad -o <out> -D <param>=<value> ...`. The fast
 preview is rendered directly in Pillow (a faithful raster mock-up of the same
-`[hole] [icon] [NAME]` layout, offset border and connector web) so you can
+`[hole] [NAME] [icon]` layout, offset border and connector web) so you can
 iterate on names/fonts/colours without launching OpenSCAD.
 
 `playdoh_label.py` builds the geometry itself. It rasterises the same layout to
@@ -307,16 +308,17 @@ edge costs one distance transform and **zero** extra triangles.
 
 ## How it works (implementation notes)
 
-- **Layout** is left-anchored: the keychain hole and the icon (fixed, known
-  sizes) sit on the left; the name grows to the right into empty space. Nothing
-  needs to measure text width, so the model renders identically on MakerWorld's
-  OpenSCAD and on older local builds.
+- **Layout** is left-anchored: the keychain hole sits on the left, followed by
+  the name and then the optional icon. The Python pipelines use the rendered
+  text bounds for exact placement. For compatibility with older OpenSCAD builds
+  that lack `textmetrics()`, `label.scad` uses a calibrated name-width estimate.
 - **Border** = a rounded outward `offset()` of the name (+ icon) silhouette:
   `offset(r=corner_round) offset(delta=border_width-corner_round)`.
 - **Connectivity** is guaranteed by a thin **connector spine** along `y = 0`
-  that, once offset by the border width, becomes a smooth neck fusing the tab,
-  icon and first letter into ONE plate — independent of glyph bearings or icon
-  spacing (verified: every export is a single connected body).
+  that runs beneath the full name and stops near the trailing icon's centre.
+  Once offset by the border width, it fuses the tab, every glyph and the icon into
+  one plate—even when an SVG has transparent inset around its visible artwork
+  (verified: every export is a single connected body).
 - **Two colours** are two top-level objects: `color(border_color) base_part()`
   (the plate, `0..border_h`) and `color(name_color) name_part()` (letters+icon,
   `border_h..border_h+font_h`). The mesh pipeline mirrors this exactly, as two
