@@ -23,6 +23,7 @@ its own extruder, which is what makes the label open pre-split across filaments.
 Usage::
 
     python test_label_3mf.py                       # checks the committed samples
+                                                   # (labels *and* collar tags)
     python test_label_3mf.py path/to/label.3mf ...
 
 Requires ``pip install lib3mf`` (not needed to *generate* labels, only to check
@@ -148,7 +149,8 @@ def check(path: str) -> list[str]:
 
 def main(argv: list[str]) -> int:
     paths = argv[1:] or sorted(
-        glob.glob(os.path.join("printable_files", "labels", "*.3mf")))
+        glob.glob(os.path.join("printable_files", "labels", "*.3mf"))
+        + glob.glob(os.path.join("printable_files", "dogtags", "*.3mf")))
     if not paths:
         sys.exit("no 3MF files to check")
 

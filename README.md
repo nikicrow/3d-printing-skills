@@ -9,6 +9,7 @@ exports locally *and* uploads to MakerWorld as a customisable multicolour model.
 | Tool | What it makes | Script |
 |---|---|---|
 | **Multicolour sign** | A scalable rounded plaque with centred, multiline Unkempt text: 4 mm black base, 1.5 mm white raised lettering, native two-part 3MF, separate STLs, and PNG preview. | [`generate-multicolour-sign/`](generate-multicolour-sign/) |
+| 🐕 **Collar tag** | A two-sided **pet collar tag**: a rounded baby-blue plaque with black lettering **inlaid flush** into *both* faces, a chamfered collar hole and softened edges. Auto-wraps and auto-sizes the text; the back face is mirrored so it reads when flipped. | [`dogtag.py`](dogtag.py) |
 | 🏷️ **Name label** | A cute, bubbly **two-colour keychain**: the name (+ optional theme icon) raised in one colour on a contrasting rounded "trace" border, with a clasp hole. Colours split by height to cut waste. Local **STL/3MF** *and* a MakerWorld parametric model. | [`label.scad`](label.scad) · [`namelabel.py`](namelabel.py) |
 | 🌀 **Roller** | A barrel with the name embossed lengthways + a themed pattern (bees, dinos, shapes, cats, fruits, trucks) that rolls a repeating imprint into the dough. | [`playdoh_roller.py`](playdoh_roller.py) |
 | 🔤 **Stamp** | A compact ~5 cm slab with a grippy cylinder handle that presses the name (and/or an icon) into the dough. Initial raised on the handle top. | [`playdoh_stamp.py`](playdoh_stamp.py) |
@@ -27,6 +28,7 @@ exports locally *and* uploads to MakerWorld as a customisable multicolour model.
 ```bash
 # install dependencies (one time)
 pip install trimesh numpy pillow matplotlib svgpathtools pydantic scipy --break-system-packages
+pip install shapely manifold3d --break-system-packages   # dogtag.py only
 
 # make a preview + printable STL (each tool takes --name; roller also takes --theme)
 python playdoh_roller.py  --name "Imogen" --theme shapes --preview --stl
@@ -37,6 +39,9 @@ python playdoh_scraper.py  --name "Imogen" --preview --stl
 python namelabel.py --name "Ember"  --icon flower --preview --stl
 python namelabel.py --name "Imogen" --icon heart --font "Bagel Fat One" --preview --3mf
 
+# two-sided pet collar tag (all outputs by default; --front is the only must)
+python dogtag.py --front "Kip" --back "0450 572 596" --stem kip_name
+
 # centred multiline sign (creates 3MF, separate STLs, and preview by default)
 python generate-multicolour-sign/scripts/generate_sign.py --text "hand\nwashing\nstation"
 ```
@@ -46,7 +51,8 @@ Outputs are **auto-filed** into the folders below — no matter which directory
 you run from — so the repo root stays tidy.
 
 Per-tool reference docs (all flags, printing settings, design constraints):
-[`SKILL_label.md`](SKILL_label.md) · [`SKILL_roller.md`](SKILL_roller.md) ·
+[`SKILL_dogtag.md`](SKILL_dogtag.md) · [`SKILL_label.md`](SKILL_label.md) ·
+[`SKILL_roller.md`](SKILL_roller.md) ·
 [`SKILL_stamp.md`](SKILL_stamp.md) · [`SKILL_scraper.md`](SKILL_scraper.md) ·
 [`SKILL_roller_v2.md`](SKILL_roller_v2.md)
 
@@ -55,6 +61,7 @@ Per-tool reference docs (all flags, printing settings, design constraints):
 ## Repo structure
 
 ```
+dogtag.py              pet collar tag: outline-based, text inlaid flush into both faces
 label.scad             name-label geometry (parametric OpenSCAD, MakerWorld-ready)
 namelabel.py           name-label MakerWorld pipeline: PIL preview + OpenSCAD export
 playdoh_label.py       name-label standalone pipeline: pure-trimesh multicolour 3MF
@@ -67,11 +74,12 @@ test_label_3mf.py      checks label 3MFs really are two-colour (lib3mf, strict)
 
 assets/                decoration SVGs + ATTRIBUTION.md
 assets/fonts/          bundled bubbly fonts for the label (OFL/Apache) + ATTRIBUTION.md
-previews/              generated PNG previews  →  labels/ rollers/ stamps/ scrapers/
-printable_files/       generated STL / 3MF     →  labels/ rollers/ stamps/ scrapers/
+previews/              generated PNG previews  →  dogtags/ labels/ rollers/ stamps/ scrapers/
+printable_files/       generated STL / 3MF     →  dogtags/ labels/ rollers/ stamps/ scrapers/
 archive/               the v2 (engraved) roller experiment
 
-SKILL_label.md         per-tool reference docs (copies of the registered skills)
+SKILL_dogtag.md        per-tool reference docs (copies of the registered skills)
+SKILL_label.md
 SKILL_roller.md
 SKILL_stamp.md
 SKILL_scraper.md
@@ -157,6 +165,40 @@ Seven bubbly fonts are bundled (Grandstander — the default, a static Bold
 instance baked from the variable font — plus Baloo 2, Bagel Fat One, Titan One,
 Chewy, Lilita One, Bubblegum Sans; all OFL/Apache, see
 [`assets/fonts/ATTRIBUTION.md`](assets/fonts/ATTRIBUTION.md)).
+
+---
+
+## The pet collar tag (two colours split in *plan*, not by height)
+
+The name label splits its colours **by height** — a border plate with the name
+raised on top. A collar tag can't work that way: it has to read from whichever
+side is facing out, and anything standing proud gets chewed, dragged through
+grass and worn off. So [`dogtag.py`](dogtag.py) splits the colours **in plan**:
+one baby-blue plaque with the lettering **recessed into both faces**, and black
+letter solids that fill those recesses exactly flush (removed volume == inlay
+volume to 1e-5 mm³). The back face is mirrored in the model, so it reads the
+right way round once the tag is flipped on the collar.
+
+```bash
+python dogtag.py --front "Kip" --back "0450 572 596" --stem kip_name
+python dogtag.py --front "I'm not good at meeting new people" \
+                 --back "please call\nmy dad\n0450 572 596" --stem kip_shy
+```
+
+It is the one **outline-based** tool here: glyph outlines come straight from the
+TTF and the plaque is lofted from analytic rings, so the letters are smooth
+curves instead of stair-stepped pixels and a whole two-sided tag is ~37 k
+triangles rather than the ~500 k a raster pipeline needs for the same area. Type
+one long string and the layout engine picks the line breaks and the largest size
+that fits. That loft also *is* the safety feature: the rim is inset at both
+faces and the hole is widened at both mouths by `--bevel`, so no edge on the
+finished tag is a sharp arris.
+
+The trade is one dependency the rest of the repo does without — `manifold3d`,
+for the two recess booleans — and the fact that a flush inlay puts two colours
+in the **same layer**, so it needs an AMS. Single-extruder printers get the same
+tag with **engraved** text by printing `<stem>_body.stl` on its own. Full flags,
+printing settings and the stroke-width limit: [`SKILL_dogtag.md`](SKILL_dogtag.md).
 
 ---
 

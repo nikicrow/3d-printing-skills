@@ -71,7 +71,7 @@ def _corner_edge_distance(M):
 
 
 def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
-                     flip_y=True, bevel=0.0):
+                     flip_y=True, bevel=0.0, bevel_mask=None):
     """Extrude a binary mask into a watertight prism (with through-holes).
 
     The planar analogue used by the name-label tool: every *truthy* pixel of
@@ -114,6 +114,13 @@ def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
         If the two chamfers would meet, both are scaled down to just fit. Needs
         ``scipy``; without it the chamfer is skipped and the prism comes out
         square-edged.
+    bevel_mask : numpy.ndarray, optional
+        Same-shape mask whose silhouette the chamfer follows, instead of
+        ``mask``'s own. Use it when only *some* of a prism's edges should be
+        softened: the dog-tag body is ``plate & ~text``, but passing the bare
+        ``plate`` here chamfers the rim and the collar hole while leaving the
+        letter cut-outs square, so the inlaid text stays flush with the face
+        rather than sitting in a V-groove.
 
     Returns
     -------
@@ -147,7 +154,8 @@ def build_mask_prism(mask, z_bottom, z_top, mm_per_px, x0=0.0, y0=0.0,
         cb, ct = cb * room / (cb + ct), ct * room / (cb + ct)
     if cb > 0 or ct > 0:
         try:
-            dist_mm = _corner_edge_distance(M) * s        # (Hc, Wc), mm inward
+            ref = M if bevel_mask is None else (np.asarray(bevel_mask) > 0)
+            dist_mm = _corner_edge_distance(ref) * s      # (Hc, Wc), mm inward
         except ImportError:
             pass
         else:

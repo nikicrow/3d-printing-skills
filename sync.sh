@@ -20,7 +20,7 @@ SKILLS="C:/Users/nikil/.claude/skills"
 
 # --- 1) code + assets + README  ->  git mirror --------------------------------
 echo "1) code + assets + README  ->  git mirror"
-for f in playdoh_roller.py playdoh_stamp.py playdoh_scraper.py \
+for f in playdoh_roller.py playdoh_stamp.py playdoh_scraper.py dogtag.py \
          svg_processing.py mesh_utils.py README.md _batch.sh sync.sh; do
   cp -f "$ROOT/$f" "$MIRROR/$f"
 done
@@ -37,6 +37,7 @@ sync_doc playdoh-roller    SKILL_roller.md
 sync_doc playdoh-stamp     SKILL_stamp.md
 sync_doc playdoh-scraper   SKILL_scraper.md
 sync_doc playdoh-roller-v2 SKILL_roller_v2.md
+sync_doc dogtag            SKILL_dogtag.md
 
 # retire the old inconsistent roller doc name in the mirror, if present
 rm -f "$MIRROR/SKILL.md"
