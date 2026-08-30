@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 150">
+  <g id="leaves" fill="#55AA55">
+    <path id="leaf-left" d="M50 35 C28 26 23 8 30 5 C42 8 49 18 52 31 Z"/>
+    <path id="leaf-center" d="M50 35 C49 17 57 3 65 5 C72 15 66 27 54 37 Z"/>
+    <path id="leaf-right" d="M50 34 C63 20 79 18 82 25 C77 36 65 40 53 39 Z"/>
+  </g>
+  <path id="body" fill="#EE8833" d="M24 34 C35 28 66 28 77 35 C74 72 62 112 49 143 C36 111 25 72 24 34 Z"/>
+</svg>

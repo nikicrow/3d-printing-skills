@@ -1,0 +1,4 @@
+interface:
+  display_name: "SVG Keychain Generator"
+  short_description: "Turn colored SVG artwork into printable keychains"
+  default_prompt: "Use $generate-svg-keychain to turn my SVG into a beveled multicolour keychain for Bambu Studio."
