@@ -1,0 +1,22 @@
+# Solid-color materials generated for 3D printing
+newmtl base_white
+Kd 1.000000 1.000000 1.000000
+Ka 0 0 0
+Ks 0 0 0
+d 1.0
+illum 1
+
+newmtl black_details
+Kd 0.066667 0.066667 0.066667
+Ka 0 0 0
+Ks 0 0 0
+d 1.0
+illum 1
+
+newmtl pink_details
+Kd 0.960784 0.603922 0.650980
+Ka 0 0 0
+Ks 0 0 0
+d 1.0
+illum 1
+

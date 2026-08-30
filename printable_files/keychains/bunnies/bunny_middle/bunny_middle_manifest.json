@@ -1,0 +1,140 @@
+{
+  "source_svg": "C:\\Users\\nikil\\3d-printed-playdoh-roller\\3d-printing-skills\\printable_files\\keychains\\bunnies\\bunny_middle.svg",
+  "dimensions_mm": {
+    "width": 51.0,
+    "depth": 57.333,
+    "height": 4.2
+  },
+  "parameters": {
+    "svg": "printable_files\\keychains\\bunnies\\bunny_middle.svg",
+    "output_dir": "printable_files\\keychains\\bunnies\\bunny_middle",
+    "name": "bunny_middle",
+    "max_art_size_mm": 55.0,
+    "border_width_mm": 3.0,
+    "base_height_mm": 3.0,
+    "art_height_mm": 1.2,
+    "bevel_mm": 0.3,
+    "hole_diameter_mm": 5.0,
+    "hole_wall_mm": 2.5,
+    "hole_position": "top",
+    "base_color": "#FFFFFF",
+    "ppm": 6,
+    "samples": 24,
+    "fill_rule": "evenodd",
+    "keychain_hole": true
+  },
+  "materials": [
+    {
+      "index": 1,
+      "name": "base_white",
+      "color": "#FFFFFF"
+    },
+    {
+      "index": 2,
+      "name": "black_details",
+      "color": "#111111"
+    },
+    {
+      "index": 3,
+      "name": "pink_details",
+      "color": "#F59AA6"
+    }
+  ],
+  "parts": [
+    {
+      "name": "part_1",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_2",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_3",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_4",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_5",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_6",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_7",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_8",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_9",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_10",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_11",
+      "material": "black_details",
+      "watertight": true
+    },
+    {
+      "name": "part_12",
+      "material": "black_details",
+      "watertight": true
+    },
+    {
+      "name": "part_13",
+      "material": "black_details",
+      "watertight": true
+    },
+    {
+      "name": "part_14",
+      "material": "black_details",
+      "watertight": true
+    },
+    {
+      "name": "part_15",
+      "material": "pink_details",
+      "watertight": true
+    },
+    {
+      "name": "part_16",
+      "material": "pink_details",
+      "watertight": true
+    },
+    {
+      "name": "part_17",
+      "material": "pink_details",
+      "watertight": true
+    },
+    {
+      "name": "part_18",
+      "material": "pink_details",
+      "watertight": true
+    }
+  ],
+  "hole_center_from_image_px": [
+    124.0,
+    32.0
+  ],
+  "warnings": []
+}

@@ -1,0 +1,185 @@
+{
+  "source_svg": "C:\\Users\\nikil\\3d-printed-playdoh-roller\\3d-printing-skills\\printable_files\\keychains\\strawberry\\strawberry.svg",
+  "dimensions_mm": {
+    "width": 54.333,
+    "depth": 68.333,
+    "height": 4.2
+  },
+  "parameters": {
+    "svg": "printable_files\\keychains\\strawberry\\strawberry.svg",
+    "output_dir": "printable_files\\keychains\\strawberry",
+    "name": "strawberry",
+    "max_art_size_mm": 55.0,
+    "border_width_mm": 3.0,
+    "base_height_mm": 3.0,
+    "art_height_mm": 1.2,
+    "bevel_mm": 0.3,
+    "hole_diameter_mm": 5.0,
+    "hole_wall_mm": 2.5,
+    "hole_position": "top",
+    "base_color": "#FFFFFF",
+    "ppm": 6,
+    "samples": 24,
+    "fill_rule": "evenodd",
+    "keychain_hole": true
+  },
+  "materials": [
+    {
+      "index": 1,
+      "name": "base_white",
+      "color": "#FFFFFF"
+    },
+    {
+      "index": 2,
+      "name": "red_fruit",
+      "color": "#CF3B48"
+    },
+    {
+      "index": 3,
+      "name": "green_leaves",
+      "color": "#2B6336"
+    }
+  ],
+  "parts": [
+    {
+      "name": "part_1",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_2",
+      "material": "red_fruit",
+      "watertight": true
+    },
+    {
+      "name": "part_3",
+      "material": "green_leaves",
+      "watertight": true
+    },
+    {
+      "name": "part_4",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_5",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_6",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_7",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_8",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_9",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_10",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_11",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_12",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_13",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_14",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_15",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_16",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_17",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_18",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_19",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_20",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_21",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_22",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_23",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_24",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_25",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_26",
+      "material": "base_white",
+      "watertight": true
+    },
+    {
+      "name": "part_27",
+      "material": "base_white",
+      "watertight": true
+    }
+  ],
+  "hole_center_from_image_px": [
+    102.0,
+    32.0
+  ],
+  "warnings": []
+}

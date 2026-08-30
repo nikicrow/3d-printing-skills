@@ -1,0 +1,22 @@
+# Solid-color materials generated for 3D printing
+newmtl base_white
+Kd 1.000000 1.000000 1.000000
+Ka 0 0 0
+Ks 0 0 0
+d 1.0
+illum 1
+
+newmtl red_fruit
+Kd 0.811765 0.231373 0.282353
+Ka 0 0 0
+Ks 0 0 0
+d 1.0
+illum 1
+
+newmtl green_leaves
+Kd 0.168627 0.388235 0.211765
+Ka 0 0 0
+Ks 0 0 0
+d 1.0
+illum 1
+

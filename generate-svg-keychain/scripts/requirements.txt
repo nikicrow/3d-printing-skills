@@ -1,0 +1,7 @@
+numpy>=2.0
+pillow>=11.0
+scipy>=1.14
+trimesh>=4.5
+svgpathtools>=1.7
+shapely>=2.0
+contourpy>=1.3
