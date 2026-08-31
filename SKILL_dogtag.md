@@ -47,9 +47,10 @@ two face recesses are real mesh booleans. Everything else here is boolean-free.
 # all outputs (preview + STLs + 3MF) — the default when no output flag is given:
 python dogtag.py --front "Kip" --back "0450 572 596" --stem kip_name
 
-# a long message: leave the line breaks to the layout engine
-python dogtag.py --front "I'm not good at meeting new people" \
-                 --back "please call\nmy dad\n0450 572 596" --stem kip_shy
+# a long message: grow the tag so it all fits on one face, and place the
+# breaks yourself when the auto-wrapper orphans a word
+python dogtag.py --front "I'm not good\nat meeting\nnew people,\nplease call\nmy dad" \
+                 --height 44 --stem kip_shy
 
 # limit the outputs, and recolour
 python dogtag.py --front "Bosco" --preview \
@@ -113,14 +114,17 @@ Glyph outlines come from the TTF via `matplotlib.textpath`, and the counters
 which *is* TrueType's even-odd fill rule, so no containment test is needed.
 That means smooth curves rather than the stair-stepped raster the Play-Doh
 tools use, and meshes measured in tens of thousands of triangles, not millions
-(a two-face message tag is ~37 k faces / 0.4 MB).
+(a five-line message tag is ~31 k faces / 0.3 MB).
 
 **Watch the stroke width.** The type shrinks to fit, so a long message on a
 small tag can thin the strokes below what the nozzle can resolve as a separate
-colour. At the 40 × 30 mm default a three-line message lands at a 5.4 mm row
-height with a ~0.7 mm mean stroke — a comfortable two perimeters at 0.4 mm.
-Below about 0.5 mm the colour separation starts to break up: shorten the text,
-move some of it to the other face, or grow the tag.
+colour. A five-line message on a 40 × 44 mm tag lands at a 5.4 mm row height
+with a ~0.7 mm mean stroke — a comfortable two perimeters at 0.4 mm. Every run
+prints the fitted stroke width per face and warns below 0.5 mm, where the colour
+separation starts to break up: shorten the text, move some of it to the other
+face, or grow the tag. Past a point extra height stops helping — once the widest
+*line* is what limits the size, only a wider tag or a different break-up gains
+anything.
 
 ## Geometry
 

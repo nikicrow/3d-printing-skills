@@ -509,7 +509,8 @@ def make_preview(cfg, info):
     plate = plate.difference(Point(*cfg.hole_center).buffer(cfg.hole_r,
                                                             quad_segs=32))
 
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4.6),
+    tall = max(1.0, cfg.height_mm / cfg.width_mm)
+    fig, axes = plt.subplots(1, 3, figsize=(12, 3.4 + 1.6 * tall),
                              gridspec_kw={"width_ratios": [1, 1, 1.15]})
     faces = (("FRONT", info.get("front_geom"), info["front"]),
              ("BACK  (as seen when flipped)", info.get("back_geom"),
@@ -545,7 +546,9 @@ def make_preview(cfg, info):
 
     fig.suptitle(f"{cfg.width_mm:g} x {cfg.height_mm:g} x {t:g} mm collar tag "
                  f"- {cfg.font}", fontsize=12)
-    fig.tight_layout()
+    # Reserve the top strip: on a tall tag the axes grow upwards and tight_layout
+    # would otherwise run the panel titles straight into the figure title.
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.93))
     out = _out_path(cfg.out_dir, PREVIEW_SUBDIR, f"{cfg.stem}_preview.png")
     fig.savefig(out, dpi=150, facecolor="white")
     plt.close(fig)

@@ -181,13 +181,13 @@ right way round once the tag is flipped on the collar.
 
 ```bash
 python dogtag.py --front "Kip" --back "0450 572 596" --stem kip_name
-python dogtag.py --front "I'm not good at meeting new people" \
-                 --back "please call\nmy dad\n0450 572 596" --stem kip_shy
+python dogtag.py --front "I'm not good\nat meeting\nnew people,\nplease call\nmy dad" \
+                 --height 44 --stem kip_shy
 ```
 
 It is the one **outline-based** tool here: glyph outlines come straight from the
 TTF and the plaque is lofted from analytic rings, so the letters are smooth
-curves instead of stair-stepped pixels and a whole two-sided tag is ~37 k
+curves instead of stair-stepped pixels and a whole two-sided tag is ~31 k
 triangles rather than the ~500 k a raster pipeline needs for the same area. Type
 one long string and the layout engine picks the line breaks and the largest size
 that fits. That loft also *is* the safety feature: the rim is inset at both
