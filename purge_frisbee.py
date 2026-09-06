@@ -95,8 +95,9 @@ class FrisbeeConfig(BaseModel):
     rim_thickness_mm : float | None
         Radial wall thickness of the rim, in mm (default: 6% of the diameter).
     top_thickness_mm : float | None
-        Thickness of the flat top disc, in mm (default: diameter / 12, i.e.
-        10 mm on a 120 mm frisbee — a chunky slab that soaks up purge).
+        Thickness of the flat top disc, in mm (default: 7 mm on a 120 mm
+        frisbee, scaled with the diameter — a chunky slab that soaks up
+        purge without becoming a discus).
     rim_bevel_mm : float | None
         Size of the 45 deg bevels on the outer and inner top edges of the rim,
         in mm (default: 30% of the rim thickness).
@@ -139,7 +140,10 @@ class FrisbeeConfig(BaseModel):
         if self.rim_thickness_mm is None:
             derived["rim_thickness_mm"] = round(0.06 * self.diameter_mm, 2)
         if self.top_thickness_mm is None:
-            derived["top_thickness_mm"] = round(self.diameter_mm / 12.0, 2)
+            # Written as a ratio rather than 0.058 so the intent is readable:
+            # 7 mm on a 120 mm frisbee, scaled proportionally from there.
+            derived["top_thickness_mm"] = round(
+                self.diameter_mm * 7.0 / 120.0, 1)
         self.__dict__.update(derived)
 
         rim = self.rim_thickness_mm
@@ -399,7 +403,7 @@ def main():
     p.add_argument("--rim-thickness", type=float, default=None,
                    help="rim wall thickness, mm (default: 6%% of diameter)")
     p.add_argument("--top-thickness", type=float, default=None,
-                   help="flat top disc thickness, mm (default: diameter / 12)")
+                   help="flat top disc thickness, mm (default: 7 mm at 120 mm dia)")
     p.add_argument("--rim-bevel", type=float, default=None,
                    help="bevel on the rim lip, mm (default: 30%% of the rim)")
     p.add_argument("--base-bevel", type=float, default=None,
