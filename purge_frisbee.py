@@ -25,7 +25,7 @@ USAGE
     python purge_frisbee.py --diameter 160 --height 30 --stl
 
     # Chunkier rim, thicker top disc:
-    python purge_frisbee.py --rim-thickness 10 --top-thickness 3 --stl
+    python purge_frisbee.py --rim-thickness 10 --top-thickness 6 --stl
 
 DEPENDENCIES
 ------------
@@ -95,7 +95,8 @@ class FrisbeeConfig(BaseModel):
     rim_thickness_mm : float | None
         Radial wall thickness of the rim, in mm (default: 6% of the diameter).
     top_thickness_mm : float | None
-        Thickness of the flat top disc, in mm (default: 2% of the diameter).
+        Thickness of the flat top disc, in mm (default: diameter / 12, i.e.
+        10 mm on a 120 mm frisbee — a chunky slab that soaks up purge).
     rim_bevel_mm : float | None
         Size of the 45 deg bevels on the outer and inner top edges of the rim,
         in mm (default: 30% of the rim thickness).
@@ -138,7 +139,7 @@ class FrisbeeConfig(BaseModel):
         if self.rim_thickness_mm is None:
             derived["rim_thickness_mm"] = round(0.06 * self.diameter_mm, 2)
         if self.top_thickness_mm is None:
-            derived["top_thickness_mm"] = round(0.02 * self.diameter_mm, 2)
+            derived["top_thickness_mm"] = round(self.diameter_mm / 12.0, 2)
         self.__dict__.update(derived)
 
         rim = self.rim_thickness_mm
@@ -398,7 +399,7 @@ def main():
     p.add_argument("--rim-thickness", type=float, default=None,
                    help="rim wall thickness, mm (default: 6%% of diameter)")
     p.add_argument("--top-thickness", type=float, default=None,
-                   help="flat top disc thickness, mm (default: 2%% of diameter)")
+                   help="flat top disc thickness, mm (default: diameter / 12)")
     p.add_argument("--rim-bevel", type=float, default=None,
                    help="bevel on the rim lip, mm (default: 30%% of the rim)")
     p.add_argument("--base-bevel", type=float, default=None,
