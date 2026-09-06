@@ -13,6 +13,7 @@ exports locally *and* uploads to MakerWorld as a customisable multicolour model.
 | 🌀 **Roller** | A barrel with the name embossed lengthways + a themed pattern (bees, dinos, shapes, cats, fruits, trucks) that rolls a repeating imprint into the dough. | [`playdoh_roller.py`](playdoh_roller.py) |
 | 🔤 **Stamp** | A compact ~5 cm slab with a grippy cylinder handle that presses the name (and/or an icon) into the dough. Initial raised on the handle top. | [`playdoh_stamp.py`](playdoh_stamp.py) |
 | 🧹 **Scraper** | A wide, low, toddler-safe wedge with a blunt front edge and the name raised on the back platform. | [`playdoh_scraper.py`](playdoh_scraper.py) |
+| 🥏 **Purge frisbee** | A flat-topped disc with a thick, beveled rim — parametric on diameter and height. Prints flat-face-down with no supports, and doubles as a "flush into this object" target so colour-change purge becomes a toy. | [`purge_frisbee.py`](purge_frisbee.py) |
 
 > ✅ **The three Play-Doh tools are print-verified** on a Bambu Lab printer. A
 > **v2 roller** (engraved → *raised* dough imprint, via `--engrave`) was also
@@ -39,6 +40,10 @@ python namelabel.py --name "Imogen" --icon heart --font "Bagel Fat One" --previe
 
 # centred multiline sign (creates 3MF, separate STLs, and preview by default)
 python generate-multicolour-sign/scripts/generate_sign.py --text "hand\nwashing\nstation"
+
+# purge frisbee (defaults: 120 mm across, 40 mm tall)
+python purge_frisbee.py --preview --stl
+python purge_frisbee.py --diameter 160 --height 30 --stl
 ```
 
 `--preview` is fast (no `trimesh`); `--stl` builds the mesh and takes longer.
@@ -61,14 +66,15 @@ playdoh_label.py       name-label standalone pipeline: pure-trimesh multicolour 
 playdoh_roller.py      roller generator   (RollerConfig)
 playdoh_stamp.py       stamp generator    (StampConfig)
 playdoh_scraper.py     scraper generator  (ScraperConfig)
+purge_frisbee.py       purge frisbee generator (FrisbeeConfig, revolved profile)
 svg_processing.py      shared: SVG → mask rasterizer + font loading
 mesh_utils.py          shared: watertight mesh helpers (no booleans, no supports)
 test_label_3mf.py      checks label 3MFs really are two-colour (lib3mf, strict)
 
 assets/                decoration SVGs + ATTRIBUTION.md
 assets/fonts/          bundled bubbly fonts for the label (OFL/Apache) + ATTRIBUTION.md
-previews/              generated PNG previews  →  labels/ rollers/ stamps/ scrapers/
-printable_files/       generated STL / 3MF     →  labels/ rollers/ stamps/ scrapers/
+previews/              generated PNG previews  →  labels/ rollers/ stamps/ scrapers/ frisbees/
+printable_files/       generated STL / 3MF     →  labels/ rollers/ stamps/ scrapers/ frisbees/
 archive/               the v2 (engraved) roller experiment
 
 SKILL_label.md         per-tool reference docs (copies of the registered skills)
