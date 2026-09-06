@@ -1,0 +1,16 @@
+{
+  "dimensions_mm": {
+    "width": 54.166666666666664,
+    "depth": 68.16666666666667,
+    "height": 5.0
+  },
+  "base_height_mm": 3.5,
+  "art_height_mm": 1.5,
+  "parts": 27,
+  "all_watertight": true,
+  "materials": {
+    "base_white": "#FFFFFF",
+    "red_fruit": "#CF3B48",
+    "green_leaves": "#2B6336"
+  }
+}

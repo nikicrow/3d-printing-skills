@@ -1,0 +1,12 @@
+newmtl base_white
+Kd 1.000000 1.000000 1.000000
+illum 1
+
+newmtl black_details
+Kd 0.066667 0.066667 0.066667
+illum 1
+
+newmtl pink_details
+Kd 0.960784 0.603922 0.650980
+illum 1
+

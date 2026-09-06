@@ -1,0 +1,16 @@
+{
+  "dimensions_mm": {
+    "width": 54.0,
+    "depth": 56.333333333333336,
+    "height": 5.0
+  },
+  "base_height_mm": 3.5,
+  "art_height_mm": 1.5,
+  "parts": 32,
+  "all_watertight": true,
+  "materials": {
+    "base_white": "#FFFFFF",
+    "black_details": "#111111",
+    "pink_details": "#F59AA6"
+  }
+}
