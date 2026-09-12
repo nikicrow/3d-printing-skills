@@ -14,6 +14,7 @@ exports locally *and* uploads to MakerWorld as a customisable multicolour model.
 | 🔤 **Stamp** | A compact ~5 cm slab with a grippy cylinder handle that presses the name (and/or an icon) into the dough. Initial raised on the handle top. | [`playdoh_stamp.py`](playdoh_stamp.py) |
 | 🧹 **Scraper** | A wide, low, toddler-safe wedge with a blunt front edge and the name raised on the back platform. | [`playdoh_scraper.py`](playdoh_scraper.py) |
 | 🥏 **Purge frisbee** | A flat-topped disc with a thick, beveled rim — parametric on diameter and height. Prints flat-face-down with no supports, and doubles as a "flush into this object" target so colour-change purge becomes a toy. | [`purge_frisbee.py`](purge_frisbee.py) |
+| 🔩 **U-bracket** | A U-shaped bracket/hook: circular 16 mm bend, two 100 mm legs tapering to points, constant 2.5 mm wall, deep grip ridges all down the outer face. Swept band — no booleans — and prints flat with no supports. | [`u_bracket.py`](u_bracket.py) |
 
 > ✅ **The three Play-Doh tools are print-verified** on a Bambu Lab printer. A
 > **v2 roller** (engraved → *raised* dough imprint, via `--engrave`) was also
@@ -44,6 +45,11 @@ python generate-multicolour-sign/scripts/generate_sign.py --text "hand\nwashing\
 # purge frisbee (defaults: 120 mm across, 40 mm tall)
 python purge_frisbee.py --preview --stl
 python purge_frisbee.py --diameter 160 --height 30 --stl
+
+# U-bracket (defaults: 16 mm bend, 100 mm legs, 2.5 mm wall, 7 mm wide, pointed tips)
+python u_bracket.py --preview --stl
+python u_bracket.py --inner-diameter 25 --leg-length 60 --width 16 --stl
+python u_bracket.py --tip-taper 0 --ridge-height 0 --stl   # blunt + smooth
 ```
 
 `--preview` is fast (no `trimesh`); `--stl` builds the mesh and takes longer.
@@ -67,14 +73,15 @@ playdoh_roller.py      roller generator   (RollerConfig)
 playdoh_stamp.py       stamp generator    (StampConfig)
 playdoh_scraper.py     scraper generator  (ScraperConfig)
 purge_frisbee.py       purge frisbee generator (FrisbeeConfig, revolved profile)
+u_bracket.py           U-bracket generator (UBracketConfig, swept band)
 svg_processing.py      shared: SVG → mask rasterizer + font loading
 mesh_utils.py          shared: watertight mesh helpers (no booleans, no supports)
 test_label_3mf.py      checks label 3MFs really are two-colour (lib3mf, strict)
 
 assets/                decoration SVGs + ATTRIBUTION.md
 assets/fonts/          bundled bubbly fonts for the label (OFL/Apache) + ATTRIBUTION.md
-previews/              generated PNG previews  →  labels/ rollers/ stamps/ scrapers/ frisbees/
-printable_files/       generated STL / 3MF     →  labels/ rollers/ stamps/ scrapers/ frisbees/
+previews/              generated PNG previews  →  labels/ rollers/ stamps/ scrapers/ frisbees/ brackets/
+printable_files/       generated STL / 3MF     →  labels/ rollers/ stamps/ scrapers/ frisbees/ brackets/
 archive/               the v2 (engraved) roller experiment
 
 SKILL_label.md         per-tool reference docs (copies of the registered skills)
