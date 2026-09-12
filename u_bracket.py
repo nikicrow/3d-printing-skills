@@ -6,36 +6,40 @@ Parametric **U-bracket** (U-hook / U-clip) generator.
 
 Seen from the side the part is a **U**: a **circular** bend at one end joining
 two **straight parallel legs**. The bend's inner diameter is the width of the
-slot between the legs (default **16 mm**), each leg is **50 mm** long, and the
-band of material is a constant **2.5 mm** thick — light and slightly springy
-rather than rigid. The whole **outer** surface carries **shallow transverse
-ridges** — a gentle ripple, not a saw-tooth — so the part is easy to grip and
-does not look like a plain bent strip.
+slot between the legs (default **16 mm**), each leg is **100 mm** long, and the
+band of material is **2.5 mm** thick — light and slightly springy rather than
+rigid. The whole **outer** surface carries **transverse ridges** with narrow
+crests and broad valleys, deep enough to catch rather than just decorate, and
+each leg **tapers to a point** over its last stretch instead of ending in a
+blunt stub.
 
 The geometry is a **swept band**, built in three steps:
 
   1. a **centreline** through the middle of the material — leg, semicircular
      arc, leg — sampled at even arc-length steps;
-  2. an **inner** and an **outer** wall, offset +-``thickness/2`` along the
-     2D normal of that centreline (the outer one additionally displaced by the
-     ridge ripple);
+  2. an **inner** and an **outer** wall, offset +-half the local thickness
+     along the 2D normal of that centreline (the outer one additionally
+     displaced by the ridge ripple). That half-thickness is constant except
+     near the leg tips, where it ramps down symmetrically about the centreline
+     to make the point;
   3. a rectangular ``thickness x width`` cross-section swept along the path and
      closed with a flat cap at each leg tip — one watertight solid, no
      booleans.
 
 Because both walls are offsets of the same path, wall thickness is exactly
-constant all the way round the bend, which is what makes the part rigid.
+constant all the way round the bend — it only changes where the tips are
+deliberately tapered.
 
 USAGE
 -----
-    # Default 16 mm slot, 50 mm legs, 2.5 mm wall — preview PNG + printable STL:
+    # Default 16 mm slot, 100 mm legs, 2.5 mm wall — preview PNG + printable STL:
     python u_bracket.py --preview --stl
 
-    # A wider, deeper bracket:
-    python u_bracket.py --inner-diameter 25 --leg-length 60 --stl
+    # A wider bracket with shallower, gentler ridges:
+    python u_bracket.py --inner-diameter 25 --ridge-height 0.6 --stl
 
-    # Beefier band, smoother (no ridges):
-    python u_bracket.py --thickness 5 --width 16 --ridge-height 0 --stl
+    # Blunt tips instead of points, and no ridges at all:
+    python u_bracket.py --tip-taper 0 --ridge-height 0 --stl
 
 DEPENDENCIES
 ------------
@@ -58,6 +62,12 @@ DEPENDENCIES
                   perimeters/walls to 3+ so the band prints solid. On a thin
                   wall like this, infill left to do the job is what makes a
                   part snap.
+  * Tips        : each leg tapers to a chisel point — thin in the plane of the
+                  U, still full width across it. Lying flat that tip is a
+                  0.8 mm vertical wall, about two extrusions wide: it prints,
+                  but it is the first thing that will snap or lift off the
+                  bed. Raise --tip-thickness if it is too delicate, and note
+                  it is sharp enough to jab.
   * Stiffness   : bending stiffness goes with the cube of the wall, so 2.5 mm
                   is roughly a quarter as stiff as 4 mm. Fine if the part is
                   meant to clip on and flex a little; bump --thickness back up
@@ -130,9 +140,20 @@ class UBracketConfig(BaseModel):
     ridge_pitch_mm : float
         Distance from one ridge crest to the next, measured along the outer
         surface, in mm.
-    ridge_taper_mm : float
+    ridge_sharpness : float
+        Shape of each ridge. 1 is a plain raised cosine; higher values pinch
+        the crests narrower and flatten the valleys between them, which is
+        what makes the ridges catch instead of just looking textured.
+    tip_taper_mm : float
+        Length at the end of each leg over which the band narrows to the
+        point, in mm. 0 leaves blunt, square-cut tips.
+    tip_thickness_mm : float
+        Thickness the point is cut off at, in mm. A true zero-thickness edge
+        cannot be printed, so the point ends in a small flat this wide.
+    ridge_taper_mm : float | None
         Length at each leg tip over which the ridges fade out to nothing, in
-        mm, so the tips end in clean flat faces.
+        mm (default: ``tip_taper_mm``, so the ridges stop exactly where the
+        point begins and the taper stays a clean wedge).
     arc_segments : int
         Number of facets around the 180 deg bend (higher = rounder + heavier).
     out_dir : str
@@ -142,17 +163,37 @@ class UBracketConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     inner_diameter_mm: float = Field(16.0, gt=0)
-    leg_length_mm: float = Field(50.0, gt=0)
+    leg_length_mm: float = Field(100.0, gt=0)
     thickness_mm: float = Field(2.5, gt=0)
     width_mm: float = Field(7.0, gt=0)
-    ridge_height_mm: float = Field(0.6, ge=0)
+    ridge_height_mm: float = Field(1.2, ge=0)
     ridge_pitch_mm: float = Field(4.0, gt=0)
-    ridge_taper_mm: float = Field(5.0, ge=0)
+    ridge_sharpness: float = Field(2.2, ge=1.0, le=6.0)
+    tip_taper_mm: float = Field(22.0, ge=0)
+    tip_thickness_mm: float = Field(0.8, gt=0)
+    ridge_taper_mm: float | None = Field(None, ge=0)
     arc_segments: int = Field(160, ge=24, le=2000)
     out_dir: str = OUT_DIR
 
     @model_validator(mode="after")
-    def _check_proportions(self):
+    def _derive_and_check(self):
+        """Fill in the optional ridge fade, then sanity-check the proportions.
+
+        Assigning only when the field is ``None`` is what stops
+        ``validate_assignment`` re-entering this validator forever.
+        """
+        if self.ridge_taper_mm is None:
+            self.ridge_taper_mm = self.tip_taper_mm
+
+        if self.tip_thickness_mm >= self.thickness_mm:
+            raise ValueError(
+                "tip_thickness_mm must be less than thickness_mm, or the tips "
+                f"are not tapered at all — got {self.tip_thickness_mm} mm on a "
+                f"{self.thickness_mm} mm wall")
+        if 2.0 * self.tip_taper_mm > self.leg_length_mm:
+            raise ValueError(
+                "tip_taper_mm is too long for these legs — the two points "
+                "would meet in the middle")
         if self.ridge_height_mm > self.thickness_mm / 2.0:
             raise ValueError(
                 "ridge_height_mm should stay under half the wall thickness — "
@@ -201,11 +242,14 @@ class UBracketConfig(BaseModel):
 
     @property
     def volume_cm3(self) -> float:
-        """float: solid volume in cm^3, ridges ignored (Pappus on the centreline).
+        """float: rough solid volume in cm^3 (Pappus on the centreline).
 
         Sweeping a ``thickness x width`` rectangle along its own centroid path
         gives ``area * path length`` exactly — the extra material on the
-        outside of the bend cancels the material missing from the inside.
+        outside of the bend cancels the material missing from the inside. The
+        ridges add a little to this and the tapered tips take a little away,
+        so treat it as an estimate; ``make_stl`` reports the mesh's real
+        volume.
         """
         return self.thickness_mm * self.width_mm * self.path_length_mm / 1000.0
 
@@ -277,11 +321,14 @@ class UBracketConfig(BaseModel):
         """Extra outward displacement from the ridges at arc length ``s``, in mm.
 
         A raised-cosine ripple (always >= 0, so it only ever *adds* material),
-        faded out over ``ridge_taper_mm`` at each leg tip so the tips are flat.
+        pinched by ``ridge_sharpness`` into narrow crests with flatter valleys
+        between them, and faded out over ``ridge_taper_mm`` at each leg tip so
+        the points stay clean wedges.
         """
         if self.ridge_height_mm <= 0:
             return np.zeros_like(s)
         ripple = 0.5 * (1.0 - np.cos(2.0 * math.pi * s / self.ridge_pitch_mm))
+        ripple = ripple ** self.ridge_sharpness
         if self.ridge_taper_mm > 0:
             total = self.path_length_mm
             window = (_smoothstep(s / self.ridge_taper_mm)
@@ -290,11 +337,28 @@ class UBracketConfig(BaseModel):
             window = 1.0
         return self.ridge_height_mm * ripple * window
 
+    def half_thickness(self, s):
+        """Half the band's thickness at arc length ``s``, in mm.
+
+        ``thickness_mm / 2`` along the body, ramping down linearly to
+        ``tip_thickness_mm / 2`` over the last ``tip_taper_mm`` of each leg.
+        Because it is applied to *both* walls, the taper is symmetric about
+        the centreline, so the point sits on the centreline rather than off
+        to one side.
+        """
+        half = self.thickness_mm / 2.0
+        if self.tip_taper_mm <= 0:
+            return np.full_like(s, half)
+        tip = self.tip_thickness_mm / 2.0
+        to_nearest_tip = np.minimum(s, self.path_length_mm - s)
+        ramp = np.clip(to_nearest_tip / self.tip_taper_mm, 0.0, 1.0)
+        return tip + (half - tip) * ramp
+
     def walls(self):
         """Return the ``(inner, outer)`` wall polylines as ``(n, 2)`` arrays."""
         points, normals, s = self.centreline()
-        half = self.thickness_mm / 2.0
-        inner = points - half * normals
+        half = self.half_thickness(s)
+        inner = points - half[:, None] * normals
         outer = points + (half + self.ridge_offset(s))[:, None] * normals
         return inner, outer
 
@@ -379,7 +443,7 @@ def make_preview(cfg):
     inner, outer = cfg.walls()
     section = np.vstack([outer, inner[::-1]])     # closed outline of the U
 
-    fig = plt.figure(figsize=(13, 6.2))
+    fig = plt.figure(figsize=(13, 7.6))
     axs = fig.add_subplot(1, 2, 1)
     ax3 = fig.add_subplot(1, 2, 2, projection="3d")
 
@@ -404,26 +468,33 @@ def make_preview(cfg):
     axs.text(x_dim + 1.4, foot / 2, f"{cfg.leg_length_mm:g} mm legs",
              va="center", ha="left", fontsize=10, rotation=90)
 
-    # overall height, tip to crown
-    x_tot = -r_o - 7.0
+    # overall height, tip to crown — outboard of the leg dimension, so the
+    # left-hand side stays clear for the wall and tip callouts
+    x_tot = r_o + 20.0
     axs.annotate("", xy=(x_tot, foot), xytext=(x_tot, crown),
                  arrowprops=dict(arrowstyle="<->", color="#888"))
-    axs.text(x_tot - 1.4, (foot + crown) / 2, f"{cfg.height_mm:g} mm overall",
-             va="center", ha="right", fontsize=9, color="#555", rotation=90)
+    axs.text(x_tot + 1.4, (foot + crown) / 2, f"{cfg.height_mm:g} mm overall",
+             va="center", ha="left", fontsize=9, color="#555", rotation=90)
 
     # wall thickness
     axs.annotate(f"{cfg.thickness_mm:g} mm wall",
-                 xy=(-cfg.centre_radius_mm, foot * 0.75),
-                 xytext=(-r_o - 12.0, foot * 0.95), ha="right", fontsize=10,
+                 xy=(-cfg.centre_radius_mm, foot * 0.45),
+                 xytext=(-r_o - 12.0, foot * 0.40), ha="right", fontsize=10,
                  arrowprops=dict(arrowstyle="->", color="black"))
+    if cfg.tip_taper_mm > 0:
+        axs.annotate(f"tips taper to {cfg.tip_thickness_mm:g} mm\n"
+                     f"over the last {cfg.tip_taper_mm:g} mm",
+                     xy=(-cfg.centre_radius_mm, foot + 1.0),
+                     xytext=(-r_o - 12.0, foot * 0.88), ha="right", fontsize=10,
+                     arrowprops=dict(arrowstyle="->", color="black"))
     if cfg.ridge_height_mm > 0:
         axs.annotate(f"ridges {cfg.ridge_height_mm:g} mm proud,\n"
                      f"{cfg.ridge_pitch_mm:g} mm apart",
-                     xy=(r_o * 0.72, r_o * 0.72), xytext=(r_o + 12.0, crown),
-                     ha="left", va="center", fontsize=10,
+                     xy=(r_o * 0.72, r_o * 0.72), xytext=(0.0, crown + 14.0),
+                     ha="center", va="center", fontsize=10,
                      arrowprops=dict(arrowstyle="->", color="black"))
-    axs.set_xlim(-r_o - 34.0, r_o + 34.0)
-    axs.set_ylim(foot - 6.0, crown + 8.0)
+    axs.set_xlim(-r_o - 30.0, r_o + 30.0)
+    axs.set_ylim(foot - 6.0, crown + 22.0)
     axs.set_aspect("equal")
     axs.set_title("side view — the U  (\u00d8 = bend inner diameter)",
                   fontsize=12)
@@ -489,6 +560,9 @@ def config_from_args(args):
         width_mm=args.width,
         ridge_height_mm=args.ridge_height,
         ridge_pitch_mm=args.ridge_pitch,
+        ridge_sharpness=args.ridge_sharpness,
+        tip_taper_mm=args.tip_taper,
+        tip_thickness_mm=args.tip_thickness,
         arc_segments=args.arc_segments,
     )
 
@@ -496,8 +570,8 @@ def config_from_args(args):
 def main():
     d = UBracketConfig()
     p = argparse.ArgumentParser(
-        description="Parametric U-bracket: circular bend, two straight legs, "
-                    "ridged outer face")
+        description="Parametric U-bracket: circular bend, two straight legs "
+                    "tapering to points, ridged outer face")
     p.add_argument("--inner-diameter", type=float, default=d.inner_diameter_mm,
                    help="inner diameter of the bend / slot width, mm "
                         "(default: %(default)s)")
@@ -513,6 +587,15 @@ def main():
                         "(default: %(default)s)")
     p.add_argument("--ridge-pitch", type=float, default=d.ridge_pitch_mm,
                    help="spacing between ridges, mm (default: %(default)s)")
+    p.add_argument("--ridge-sharpness", type=float, default=d.ridge_sharpness,
+                   help="1 = soft ripple, higher = narrower, grippier crests "
+                        "(default: %(default)s)")
+    p.add_argument("--tip-taper", type=float, default=d.tip_taper_mm,
+                   help="length the legs taper to a point over, mm; 0 for "
+                        "blunt tips (default: %(default)s)")
+    p.add_argument("--tip-thickness", type=float, default=d.tip_thickness_mm,
+                   help="thickness the point is cut off at, mm "
+                        "(default: %(default)s)")
     p.add_argument("--arc-segments", type=int, default=d.arc_segments,
                    help="facets around the bend (default: %(default)s)")
     p.add_argument("--preview", action="store_true", help="write preview PNG")
