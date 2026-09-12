@@ -46,7 +46,7 @@ DEPENDENCIES
 3D PRINTING NOTES
 ----------------------------------------------------------------------------
   * Orientation : exported **lying flat on its side** — the U shape is in the
-                  bed plane and the 12 mm width is the print height. Print
+                  bed plane and the 7 mm width is the print height. Print
                   exactly as oriented.
   * Supports    : NONE. Lying flat, every wall is vertical; the arch is a
                   flat-on-the-bed curve, not an overhang. (Stood upright the
@@ -139,7 +139,7 @@ class UBracketConfig(BaseModel):
     inner_diameter_mm: float = Field(20.0, gt=0)
     leg_length_mm: float = Field(50.0, gt=0)
     thickness_mm: float = Field(4.0, gt=0)
-    width_mm: float = Field(12.0, gt=0)
+    width_mm: float = Field(7.0, gt=0)
     ridge_height_mm: float = Field(0.6, ge=0)
     ridge_pitch_mm: float = Field(4.0, gt=0)
     ridge_taper_mm: float = Field(5.0, ge=0)

@@ -46,7 +46,7 @@ python generate-multicolour-sign/scripts/generate_sign.py --text "hand\nwashing\
 python purge_frisbee.py --preview --stl
 python purge_frisbee.py --diameter 160 --height 30 --stl
 
-# U-bracket (defaults: 20 mm bend, 50 mm legs, 4 mm wall, 12 mm wide)
+# U-bracket (defaults: 20 mm bend, 50 mm legs, 4 mm wall, 7 mm wide)
 python u_bracket.py --preview --stl
 python u_bracket.py --inner-diameter 25 --leg-length 60 --width 16 --stl
 ```
