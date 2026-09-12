@@ -6,7 +6,7 @@ Parametric **U-bracket** (U-hook / U-clip) generator.
 
 Seen from the side the part is a **U**: a **circular** bend at one end joining
 two **straight parallel legs**. The bend's inner diameter is the width of the
-slot between the legs (default **20 mm**), each leg is **50 mm** long, and the
+slot between the legs (default **16 mm**), each leg is **50 mm** long, and the
 band of material is a constant **4 mm** thick, so the finished part is stiff
 rather than springy. The whole **outer** surface carries **shallow transverse
 ridges** — a gentle ripple, not a saw-tooth — so the part is easy to grip and
@@ -28,7 +28,7 @@ constant all the way round the bend, which is what makes the part rigid.
 
 USAGE
 -----
-    # Default 20 mm slot, 50 mm legs, 4 mm wall — preview PNG + printable STL:
+    # Default 16 mm slot, 50 mm legs, 4 mm wall — preview PNG + printable STL:
     python u_bracket.py --preview --stl
 
     # A wider, deeper bracket:
@@ -136,7 +136,7 @@ class UBracketConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
-    inner_diameter_mm: float = Field(20.0, gt=0)
+    inner_diameter_mm: float = Field(16.0, gt=0)
     leg_length_mm: float = Field(50.0, gt=0)
     thickness_mm: float = Field(4.0, gt=0)
     width_mm: float = Field(7.0, gt=0)
@@ -388,7 +388,8 @@ def make_preview(cfg):
     # inner diameter of the circular bend, measured across the arc centre
     axs.annotate("", xy=(-r_i, 0.0), xytext=(r_i, 0.0),
                  arrowprops=dict(arrowstyle="<->", color="#1b3b52"))
-    axs.text(0, 1.2, f"{cfg.inner_diameter_mm:g} mm inner dia",
+    # "O" with a stroke = diameter; kept short so it fits inside the slot
+    axs.text(0, 1.4, f"\u00d8{cfg.inner_diameter_mm:g} mm",
              ha="center", va="bottom", fontsize=10, color="#1b3b52")
 
     # leg length, from the end of the bend down to the tip
@@ -419,7 +420,8 @@ def make_preview(cfg):
     axs.set_xlim(-r_o - 34.0, r_o + 34.0)
     axs.set_ylim(foot - 6.0, crown + 8.0)
     axs.set_aspect("equal")
-    axs.set_title("side view — the U", fontsize=12)
+    axs.set_title("side view — the U  (\u00d8 = bend inner diameter)",
+                  fontsize=12)
     axs.axis("off")
 
     # --- 3D view -----------------------------------------------------------

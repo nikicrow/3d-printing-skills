@@ -14,7 +14,7 @@ exports locally *and* uploads to MakerWorld as a customisable multicolour model.
 | 🔤 **Stamp** | A compact ~5 cm slab with a grippy cylinder handle that presses the name (and/or an icon) into the dough. Initial raised on the handle top. | [`playdoh_stamp.py`](playdoh_stamp.py) |
 | 🧹 **Scraper** | A wide, low, toddler-safe wedge with a blunt front edge and the name raised on the back platform. | [`playdoh_scraper.py`](playdoh_scraper.py) |
 | 🥏 **Purge frisbee** | A flat-topped disc with a thick, beveled rim — parametric on diameter and height. Prints flat-face-down with no supports, and doubles as a "flush into this object" target so colour-change purge becomes a toy. | [`purge_frisbee.py`](purge_frisbee.py) |
-| 🔩 **U-bracket** | A stiff U-shaped bracket/hook: circular 20 mm bend, two 50 mm legs, constant 4 mm wall, shallow grip ridges all down the outer face. Swept band — no booleans — and prints flat with no supports. | [`u_bracket.py`](u_bracket.py) |
+| 🔩 **U-bracket** | A stiff U-shaped bracket/hook: circular 16 mm bend, two 50 mm legs, constant 4 mm wall, shallow grip ridges all down the outer face. Swept band — no booleans — and prints flat with no supports. | [`u_bracket.py`](u_bracket.py) |
 
 > ✅ **The three Play-Doh tools are print-verified** on a Bambu Lab printer. A
 > **v2 roller** (engraved → *raised* dough imprint, via `--engrave`) was also
@@ -46,7 +46,7 @@ python generate-multicolour-sign/scripts/generate_sign.py --text "hand\nwashing\
 python purge_frisbee.py --preview --stl
 python purge_frisbee.py --diameter 160 --height 30 --stl
 
-# U-bracket (defaults: 20 mm bend, 50 mm legs, 4 mm wall, 7 mm wide)
+# U-bracket (defaults: 16 mm bend, 50 mm legs, 4 mm wall, 7 mm wide)
 python u_bracket.py --preview --stl
 python u_bracket.py --inner-diameter 25 --leg-length 60 --width 16 --stl
 ```
