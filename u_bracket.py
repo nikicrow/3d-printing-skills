@@ -7,8 +7,8 @@ Parametric **U-bracket** (U-hook / U-clip) generator.
 Seen from the side the part is a **U**: a **circular** bend at one end joining
 two **straight parallel legs**. The bend's inner diameter is the width of the
 slot between the legs (default **16 mm**), each leg is **50 mm** long, and the
-band of material is a constant **4 mm** thick, so the finished part is stiff
-rather than springy. The whole **outer** surface carries **shallow transverse
+band of material is a constant **2.5 mm** thick — light and slightly springy
+rather than rigid. The whole **outer** surface carries **shallow transverse
 ridges** — a gentle ripple, not a saw-tooth — so the part is easy to grip and
 does not look like a plain bent strip.
 
@@ -28,7 +28,7 @@ constant all the way round the bend, which is what makes the part rigid.
 
 USAGE
 -----
-    # Default 16 mm slot, 50 mm legs, 4 mm wall — preview PNG + printable STL:
+    # Default 16 mm slot, 50 mm legs, 2.5 mm wall — preview PNG + printable STL:
     python u_bracket.py --preview --stl
 
     # A wider, deeper bracket:
@@ -54,9 +54,14 @@ DEPENDENCIES
   * Layer lines : the layers stack across the width, so the U is being asked
                   to bend *in the plane of the layers*. That is the strong
                   direction for a bent part like this.
-  * Walls       : 4 mm at a 0.4 mm nozzle is 5 perimeters a side — set
-                  perimeters/walls to 4-5 and the part is effectively solid,
-                  infill barely matters.
+  * Walls       : 2.5 mm at a 0.4 mm nozzle is only ~3 perimeters a side — set
+                  perimeters/walls to 3+ so the band prints solid. On a thin
+                  wall like this, infill left to do the job is what makes a
+                  part snap.
+  * Stiffness   : bending stiffness goes with the cube of the wall, so 2.5 mm
+                  is roughly a quarter as stiff as 4 mm. Fine if the part is
+                  meant to clip on and flex a little; bump --thickness back up
+                  if it needs to hold a load without spreading.
   * Material    : PLA is fine and stiff. PETG if it needs to survive being
                   flexed or left in a hot car.
 ----------------------------------------------------------------------------
@@ -138,7 +143,7 @@ class UBracketConfig(BaseModel):
 
     inner_diameter_mm: float = Field(16.0, gt=0)
     leg_length_mm: float = Field(50.0, gt=0)
-    thickness_mm: float = Field(4.0, gt=0)
+    thickness_mm: float = Field(2.5, gt=0)
     width_mm: float = Field(7.0, gt=0)
     ridge_height_mm: float = Field(0.6, ge=0)
     ridge_pitch_mm: float = Field(4.0, gt=0)
