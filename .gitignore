@@ -15,3 +15,4 @@ venv/
 /scraper_*.stl
 /scraper_*.3mf
 .runtime_tapping/
+*.log

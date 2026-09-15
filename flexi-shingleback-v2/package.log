@@ -1,1 +1,0 @@
-{"watertight_parts": 77, "single_shell_per_part": true, "consistent_winding": true, "assembly_build_items": 1, "unit": "millimeter", "plate_bounds_mm": [[18.354674211704634, 18.28715496039017, 0.0], [161.6453257882954, 161.71284503960982, 27.911832809448242]], "plate_footprint_mm": [143.29065157659076, 143.42569007921963], "sample_shells": 13}
