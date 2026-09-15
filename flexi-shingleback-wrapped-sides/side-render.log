@@ -1,0 +1,12 @@
+00:03.672  blend            | Read blend: "C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-shingleback-wrapped-sides\flexi-shingleback-wrapped-sides.blend"
+00:08.547  render           | Saved: 'C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-shingleback-wrapped-sides\belly-side-detail.png'
+00:09.594  render           | Saved: 'C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-shingleback-wrapped-sides\belly-lower-detail.png'
+00:29.750  render           | Saved: 'C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-shingleback-wrapped-sides\joint-coverage-inspection.png'
+BlenderMCP: cannot start server in background mode (blender -b) - commands would never execute
+BlenderMCP: run Blender with a GUI, or use a virtual display: xvfb-run -a blender
+BlenderMCP addon registered
+BlenderMCP server stopped
+BlenderMCP addon unregistered
+Blender 5.2.1 LTS (hash 9e2066aef7ef built 2026-08-25 02:38:20)
+
+Blender quit

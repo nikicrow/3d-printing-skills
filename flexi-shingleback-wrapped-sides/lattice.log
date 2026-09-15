@@ -1,0 +1,4 @@
+INPUT Error.NoError 331027.10723225906 Error.NoError
+GROOVE_FOLLOWING 550 shared edges
+WRAP_SURFACE Error.NoError 345003.3233323434
+{"connected_parts": 133, "total_parts": 133, "complete_network": true, "intact_neighbor_links": 252, "missing_joint_quarters": []}

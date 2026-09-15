@@ -14,3 +14,4 @@ venv/
 /stamp_*.stl
 /scraper_*.stl
 /scraper_*.3mf
+.runtime_tapping/

@@ -1,0 +1,8 @@
+00:10.922  blend            | Read blend: "C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-shingleback\source-study.blend"
+raw [-0.25342199 -0.95068002 -0.15653104] [0.25225699 0.951033   0.14463902]
+repaired 335942 671868 [-2.53117771e+01 -9.50618668e+01  1.77166238e-02] [25.20042801 95.09768677 30.10895348]
+01:12.860  blend            | Read blend: "C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-bilby\pangolin-inspection\pangolin-separated-study.blend"
+link_bounds [ -4.10592985 -38.09564972   0.07215285] [  4.10601902 -29.88549423   6.        ]
+Blender 5.2.1 LTS (hash 9e2066aef7ef built 2026-08-25 02:38:20)
+
+Blender quit

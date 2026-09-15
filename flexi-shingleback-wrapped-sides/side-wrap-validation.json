@@ -1,0 +1,191 @@
+{
+  "extended_pieces": 30,
+  "dorsal_geometry_above_mm": 20.02,
+  "dorsal_preserved_within_export_tolerance": true,
+  "original_piece_geometry_preserved_within_export_tolerance": true,
+  "max_removed_volume_mm3": 0.0760046364554261,
+  "max_dorsal_difference_mm3": 0.03879651118986299,
+  "added_volume_mm3": 12884.059738052418,
+  "pieces": [
+    {
+      "piece": "Left_foreleg_fixed",
+      "added_volume_mm3_normalized": 420.370493439806,
+      "removed_volume_mm3_normalized": 0.0542747398619247,
+      "upper_difference_mm3_normalized": 0.013848359975098342
+    },
+    {
+      "piece": "Left_hindleg_fixed",
+      "added_volume_mm3_normalized": 483.32687647264356,
+      "removed_volume_mm3_normalized": 0.02748588966389471,
+      "upper_difference_mm3_normalized": 0.010468687768824137
+    },
+    {
+      "piece": "Right_foreleg_fixed",
+      "added_volume_mm3_normalized": 419.1604246547011,
+      "removed_volume_mm3_normalized": 0.007549900505958566,
+      "upper_difference_mm3_normalized": 0.006351324767918215
+    },
+    {
+      "piece": "Right_hindleg_fixed",
+      "added_volume_mm3_normalized": 480.36628495290694,
+      "removed_volume_mm3_normalized": 0.02408025207506011,
+      "upper_difference_mm3_normalized": 0.006533636697516457
+    },
+    {
+      "piece": "Scale_link_062",
+      "added_volume_mm3_normalized": 456.94507808554346,
+      "removed_volume_mm3_normalized": 0.009597638259270836,
+      "upper_difference_mm3_normalized": 0.022174106996493394
+    },
+    {
+      "piece": "Scale_link_066",
+      "added_volume_mm3_normalized": 457.1345069084546,
+      "removed_volume_mm3_normalized": 0.006853040069695144,
+      "upper_difference_mm3_normalized": 0.029173413117528555
+    },
+    {
+      "piece": "Scale_link_071",
+      "added_volume_mm3_normalized": 384.6852664079365,
+      "removed_volume_mm3_normalized": 0.042164251994496894,
+      "upper_difference_mm3_normalized": 0.029843470146048455
+    },
+    {
+      "piece": "Scale_link_075",
+      "added_volume_mm3_normalized": 392.16175752499913,
+      "removed_volume_mm3_normalized": 0.008230513155600966,
+      "upper_difference_mm3_normalized": 0.022667471303233513
+    },
+    {
+      "piece": "Scale_link_080",
+      "added_volume_mm3_normalized": 398.253655204359,
+      "removed_volume_mm3_normalized": 0.008858518861480117,
+      "upper_difference_mm3_normalized": 0.028369186325537227
+    },
+    {
+      "piece": "Scale_link_084",
+      "added_volume_mm3_normalized": 403.9683684027966,
+      "removed_volume_mm3_normalized": 0.01249224850324816,
+      "upper_difference_mm3_normalized": 0.02613438431809446
+    },
+    {
+      "piece": "Scale_link_089",
+      "added_volume_mm3_normalized": 379.1473155722526,
+      "removed_volume_mm3_normalized": 0.007420075848240977,
+      "upper_difference_mm3_normalized": 0.024269252771284874
+    },
+    {
+      "piece": "Scale_link_093",
+      "added_volume_mm3_normalized": 362.05318876908177,
+      "removed_volume_mm3_normalized": 0.008140515558776767,
+      "upper_difference_mm3_normalized": 0.021461530815565844
+    },
+    {
+      "piece": "Scale_link_098",
+      "added_volume_mm3_normalized": 403.4481424498164,
+      "removed_volume_mm3_normalized": 0.010630955108942084,
+      "upper_difference_mm3_normalized": 0.02982214310670775
+    },
+    {
+      "piece": "Scale_link_102",
+      "added_volume_mm3_normalized": 439.1130565691756,
+      "removed_volume_mm3_normalized": 0.009511966416175369,
+      "upper_difference_mm3_normalized": 0.026745001251746087
+    },
+    {
+      "piece": "Scale_link_107",
+      "added_volume_mm3_normalized": 349.14139358883097,
+      "removed_volume_mm3_normalized": 0.0075618124375121665,
+      "upper_difference_mm3_normalized": 0.020493015761898645
+    },
+    {
+      "piece": "Scale_link_111",
+      "added_volume_mm3_normalized": 351.5119097752853,
+      "removed_volume_mm3_normalized": 0.012326170914742458,
+      "upper_difference_mm3_normalized": 0.020777262745317417
+    },
+    {
+      "piece": "Scale_link_116",
+      "added_volume_mm3_normalized": 419.4909226991869,
+      "removed_volume_mm3_normalized": 0.005675400439993666,
+      "upper_difference_mm3_normalized": 0.026911644639803056
+    },
+    {
+      "piece": "Scale_link_120",
+      "added_volume_mm3_normalized": 429.01045499429864,
+      "removed_volume_mm3_normalized": 0.007980827975653157,
+      "upper_difference_mm3_normalized": 0.022326481495785956
+    },
+    {
+      "piece": "Scale_link_125",
+      "added_volume_mm3_normalized": 505.01039494808094,
+      "removed_volume_mm3_normalized": 0.05846510496571238,
+      "upper_difference_mm3_normalized": 0.02033509130547915
+    },
+    {
+      "piece": "Scale_link_129",
+      "added_volume_mm3_normalized": 513.2617863079752,
+      "removed_volume_mm3_normalized": 0.022966088739876347,
+      "upper_difference_mm3_normalized": 0.015190390276094534
+    },
+    {
+      "piece": "Scale_link_155",
+      "added_volume_mm3_normalized": 15.690833031809566,
+      "removed_volume_mm3_normalized": 0.005954540757753691,
+      "upper_difference_mm3_normalized": 0.008111949466791772
+    },
+    {
+      "piece": "Scale_link_157",
+      "added_volume_mm3_normalized": 8.730344491662345,
+      "removed_volume_mm3_normalized": 0.0025727046378005982,
+      "upper_difference_mm3_normalized": 0.008273170083593986
+    },
+    {
+      "piece": "Scale_link_158",
+      "added_volume_mm3_normalized": 169.67802305217955,
+      "removed_volume_mm3_normalized": 0.0030138509145993453,
+      "upper_difference_mm3_normalized": 0.006007053565028836
+    },
+    {
+      "piece": "Scale_link_161",
+      "added_volume_mm3_normalized": 250.59479380713537,
+      "removed_volume_mm3_normalized": 0.006675272766885508,
+      "upper_difference_mm3_normalized": 0.006418880680251409
+    },
+    {
+      "piece": "Scale_link_162",
+      "added_volume_mm3_normalized": 148.79785898065902,
+      "removed_volume_mm3_normalized": 0.004567283010375354,
+      "upper_difference_mm3_normalized": 0.00747309477685452
+    },
+    {
+      "piece": "Scale_link_164",
+      "added_volume_mm3_normalized": 49.84956572671265,
+      "removed_volume_mm3_normalized": 0.005018540174982645,
+      "upper_difference_mm3_normalized": 0.013231619876935576
+    },
+    {
+      "piece": "Scale_link_167",
+      "added_volume_mm3_normalized": 303.2422215535177,
+      "removed_volume_mm3_normalized": 0.010248338568386738,
+      "upper_difference_mm3_normalized": 0.007119075865715507
+    },
+    {
+      "piece": "Scale_link_169",
+      "added_volume_mm3_normalized": 322.56474152562214,
+      "removed_volume_mm3_normalized": 0.005654315623209319,
+      "upper_difference_mm3_normalized": 0.010325179685268662
+    },
+    {
+      "piece": "Scale_link_172",
+      "added_volume_mm3_normalized": 106.55734648120404,
+      "removed_volume_mm3_normalized": 0.001311106212359258,
+      "upper_difference_mm3_normalized": 0.0004669453432575991
+    },
+    {
+      "piece": "Scale_link_174",
+      "added_volume_mm3_normalized": 87.54817673861069,
+      "removed_volume_mm3_normalized": 0.001875689429507835,
+      "upper_difference_mm3_normalized": 0.0026618736498640427
+    }
+  ]
+}

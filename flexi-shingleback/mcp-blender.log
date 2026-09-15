@@ -1,0 +1,8 @@
+00:10.875  blend            | Writing user preferences: "C:\Users\nikil\AppData\Roaming\Blender Foundation\Blender\5.2\config\userpref.blend" 
+addon_utils.disable: blender_mcp not loaded
+Modules Installed (blender_mcp) from 'C:\\Users\\nikil\\3d-printed-playdoh-roller\\3d-printing-skills\\flexi-shingleback\\blender_mcp.py' into 'C:\\Users\\nikil\\AppData\\Roaming\\Blender Foundation\\Blender\\5.2\\scripts\\addons'
+Info: Modules Installed (blender_mcp) from 'C:\\Users\\nikil\\3d-printed-playdoh-roller\\3d-printing-skills\\flexi-shingleback\\blender_mcp.py' into 'C:\\Users\\nikil\\AppData\\Roaming\\Blender Foundation\\Blender\\5.2\\scripts\\addons'
+Server thread started
+BlenderMCP server started on localhost:9876
+BlenderMCP addon registered
+Info: Preferences saved

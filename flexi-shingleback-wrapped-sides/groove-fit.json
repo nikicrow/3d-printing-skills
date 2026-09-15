@@ -1,0 +1,6 @@
+{
+  "adjusted_shared_edges": 371,
+  "mean_surface_residual_before_mm": 0.148604303470445,
+  "mean_surface_residual_after_mm": -0.03916316923095297,
+  "note": "Lower residual means a lower local groove relative to the smoothed sculpt; not a percentage of perfectly matched scales."
+}

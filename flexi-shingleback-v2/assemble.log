@@ -1,0 +1,89 @@
+00:05.750  render           | Saved: 'C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-shingleback-v2\shingleback-preview.png'
+00:06.406  render           | Saved: 'C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-shingleback-v2\shingleback-top.png'
+00:06.984  render           | Saved: 'C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-shingleback-v2\shingleback-side.png'
+00:07.734  render           | Saved: 'C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-shingleback-v2\shingleback-underside.png'
+00:08.562  render           | Saved: 'C:\Users\nikil\3d-printed-playdoh-roller\3d-printing-skills\flexi-shingleback-v2\hindleg-detail.png'
+00:08.656  image.write      | ERROR OpenImageIO write failed: Could not open file "\.thumbnails\large\blender_6152_6b5ab0b8070b3d0b8605b06c4de2c1db.png.png"
+Info: Saved as "flexi-shingleback-v2.blend"
+SAVED 77 separate objects
+Blender 5.2.1 LTS (hash 9e2066aef7ef built 2026-08-25 02:38:20)
+Timer 'STL Import' took 56.46 ms
+Timer 'STL Import' took 15.99 ms
+Timer 'STL Import' took 18.75 ms
+Timer 'STL Import' took 13.96 ms
+Timer 'STL Import' took 17.95 ms
+Timer 'STL Import' took 2.13 ms
+Timer 'STL Import' took 0.89 ms
+Timer 'STL Import' took 1.94 ms
+Timer 'STL Import' took 0.89 ms
+Timer 'STL Import' took 1.56 ms
+Timer 'STL Import' took 1.60 ms
+Timer 'STL Import' took 0.86 ms
+Timer 'STL Import' took 1.63 ms
+Timer 'STL Import' took 0.87 ms
+Timer 'STL Import' took 0.90 ms
+Timer 'STL Import' took 0.72 ms
+Timer 'STL Import' took 0.84 ms
+Timer 'STL Import' took 0.79 ms
+Timer 'STL Import' took 0.70 ms
+Timer 'STL Import' took 2.02 ms
+Timer 'STL Import' took 0.73 ms
+Timer 'STL Import' took 0.78 ms
+Timer 'STL Import' took 0.94 ms
+Timer 'STL Import' took 3.54 ms
+Timer 'STL Import' took 0.85 ms
+Timer 'STL Import' took 0.72 ms
+Timer 'STL Import' took 3.78 ms
+Timer 'STL Import' took 0.95 ms
+Timer 'STL Import' took 0.96 ms
+Timer 'STL Import' took 0.96 ms
+Timer 'STL Import' took 3.18 ms
+Timer 'STL Import' took 0.90 ms
+Timer 'STL Import' took 0.69 ms
+Timer 'STL Import' took 4.51 ms
+Timer 'STL Import' took 0.82 ms
+Timer 'STL Import' took 0.74 ms
+Timer 'STL Import' took 0.79 ms
+Timer 'STL Import' took 2.98 ms
+Timer 'STL Import' took 0.90 ms
+Timer 'STL Import' took 0.77 ms
+Timer 'STL Import' took 2.93 ms
+Timer 'STL Import' took 0.93 ms
+Timer 'STL Import' took 0.90 ms
+Timer 'STL Import' took 0.92 ms
+Timer 'STL Import' took 2.89 ms
+Timer 'STL Import' took 0.89 ms
+Timer 'STL Import' took 1.30 ms
+Timer 'STL Import' took 2.99 ms
+Timer 'STL Import' took 1.12 ms
+Timer 'STL Import' took 0.94 ms
+Timer 'STL Import' took 0.84 ms
+Timer 'STL Import' took 5.06 ms
+Timer 'STL Import' took 0.95 ms
+Timer 'STL Import' took 0.86 ms
+Timer 'STL Import' took 2.65 ms
+Timer 'STL Import' took 0.96 ms
+Timer 'STL Import' took 0.82 ms
+Timer 'STL Import' took 0.96 ms
+Timer 'STL Import' took 0.85 ms
+Timer 'STL Import' took 2.23 ms
+Timer 'STL Import' took 0.81 ms
+Timer 'STL Import' took 2.15 ms
+Timer 'STL Import' took 0.87 ms
+Timer 'STL Import' took 0.87 ms
+Timer 'STL Import' took 2.21 ms
+Timer 'STL Import' took 1.24 ms
+Timer 'STL Import' took 3.50 ms
+Timer 'STL Import' took 1.00 ms
+Timer 'STL Import' took 3.95 ms
+Timer 'STL Import' took 0.98 ms
+Timer 'STL Import' took 0.97 ms
+Timer 'STL Import' took 4.47 ms
+Timer 'STL Import' took 1.01 ms
+Timer 'STL Import' took 3.80 ms
+Timer 'STL Import' took 2.04 ms
+Timer 'STL Import' took 2.79 ms
+Timer 'STL Import' took 7.24 ms
+Unable to delete file
+
+Blender quit
