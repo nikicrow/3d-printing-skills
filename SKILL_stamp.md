@@ -36,7 +36,7 @@ dough reads the right way round.
 ## Dependencies
 
 ```
-pip install trimesh numpy pillow matplotlib svgpathtools pydantic --break-system-packages
+pip install -r requirements.txt
 ```
 
 Pure local Python 3 — no native cairo, no shapely, no boolean/manifold backend,

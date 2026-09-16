@@ -31,7 +31,7 @@ print-verified on the Bambu Lab A1.
 ## Dependencies
 
 ```
-pip install trimesh numpy pillow matplotlib pydantic --break-system-packages
+pip install -r requirements.txt
 ```
 
 Pure local Python 3 — no native cairo, no shapely, no boolean/manifold backend.

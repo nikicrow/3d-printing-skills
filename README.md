@@ -28,7 +28,9 @@ exports locally *and* uploads to MakerWorld as a customisable multicolour model.
 
 ```bash
 # install dependencies (one time)
-pip install trimesh numpy pillow matplotlib svgpathtools pydantic scipy --break-system-packages
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 
 # make a preview + printable STL (each tool takes --name; roller also takes --theme)
 python playdoh_roller.py  --name "Imogen" --theme shapes --preview --stl

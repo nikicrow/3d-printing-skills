@@ -67,8 +67,7 @@ Both produce the same *design*; the sections below describe the parameters
 ## Dependencies
 
 ```
-pip install numpy pillow pydantic svgpathtools --break-system-packages          # namelabel.py
-pip install trimesh matplotlib scipy --break-system-packages                    # + playdoh_label.py
+pip install -r requirements.txt
 ```
 
 Plus **OpenSCAD** for `namelabel.py --stl` / `--3mf` (https://openscad.org).
@@ -199,7 +198,6 @@ Consortium's reference implementation and the parser Bambu Studio's "Standard
 3MF File Color Parsing" is built on:
 
 ```bash
-pip install lib3mf
 python test_label_3mf.py                 # checks every 3MF in printable_files/labels/
 ```
 

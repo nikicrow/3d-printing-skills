@@ -33,7 +33,7 @@ raised outward from the barrel).
 ## Dependencies
 
 ```
-pip install trimesh numpy pillow matplotlib svgpathtools --break-system-packages
+pip install -r requirements.txt
 ```
 
 `numpy`, `pillow`, `matplotlib`, and `svgpathtools` are needed for `--preview`
