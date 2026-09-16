@@ -1,0 +1,118 @@
+{
+  "configuration": {
+    "face_height": 200,
+    "face_thickness": 3,
+    "frame_thickness": 12,
+    "string_height": 2,
+    "numeral_height": 2,
+    "hub_above_strings": 1,
+    "hole_diameter": 9,
+    "face_clearance": 0.3,
+    "joint_clearance": 0.25,
+    "font": "C:/Windows/Fonts/BRUSHSCI.TTF"
+  },
+  "meshes": {
+    "white": {
+      "watertight": true,
+      "components": 1,
+      "bounds_mm": [
+        [
+          -76.9999771118164,
+          -101.99993133544922,
+          0.0
+        ],
+        [
+          76.9999771118164,
+          101.99993133544922,
+          6.0
+        ]
+      ],
+      "volume_mm3": 86345.51814432624,
+      "triangles": 20118
+    },
+    "red": {
+      "watertight": true,
+      "components": 15,
+      "bounds_mm": [
+        [
+          -59.82417326502096,
+          -85.5,
+          6.0
+        ],
+        [
+          61.917678300455236,
+          85.5,
+          8.0
+        ]
+      ],
+      "volume_mm3": 1656.4972689505933,
+      "triangles": 4112
+    },
+    "face": {
+      "watertight": true,
+      "components": 1,
+      "bounds_mm": [
+        [
+          -76.9999771118164,
+          -101.99993133544922,
+          0.0
+        ],
+        [
+          76.9999771118164,
+          101.99993133544922,
+          8.0
+        ]
+      ],
+      "volume_mm3": 88002.01542533445,
+      "triangles": 22196
+    },
+    "frame": {
+      "watertight": true,
+      "components": 1,
+      "bounds_mm": [
+        [
+          -86.99987030029297,
+          -190.0,
+          -9.0
+        ],
+        [
+          86.99987030029297,
+          111.99959564208984,
+          3.0
+        ]
+      ],
+      "volume_mm3": 99505.16990205659,
+      "triangles": 15644
+    },
+    "handle": {
+      "watertight": true,
+      "components": 1,
+      "bounds_mm": [
+        [
+          -15.0,
+          -290.0,
+          -9.0
+        ],
+        [
+          15.0,
+          -175.0,
+          3.0
+        ]
+      ],
+      "volume_mm3": 30277.434578532702,
+      "triangles": 212
+    }
+  },
+  "color_change_z_mm": 6,
+  "hub_diameter_mm": 20,
+  "checks": [
+    "All physical parts connected, watertight, positive volume",
+    "Zero assembled part intersections",
+    "Clear 9 mm through-bore",
+    "Dovetail contained by clearance socket",
+    "White and red materials do not overlap",
+    "Continuous white strings under all numerals; supported red numeral bases",
+    "Single height-separated colour change; white hub 1 mm above strings by default",
+    "Reopened STLs and 3MF; closed meshes, two colours, one face build object"
+  ]
+}

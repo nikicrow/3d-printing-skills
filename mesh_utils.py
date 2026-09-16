@@ -212,7 +212,7 @@ def _rrggbbaa(hexcolor):
 
 
 def write_color_3mf(mesh, face_material, colors, path, names=None,
-                    object_name=None):
+                    object_name=None, precision=4):
     """Write a multi-colour 3MF that both generic slicers and Bambu Studio read.
 
     The mesh is split into one 3MF ``<object>`` per material and those are
@@ -272,7 +272,7 @@ def write_color_3mf(mesh, face_material, colors, path, names=None,
         sub_f = remap.reshape(sel.shape)
         oid = 2 + len(parts)                       # 1 is the basematerials id
 
-        vtx = "".join(f'<vertex x="{x:.4f}" y="{y:.4f}" z="{z:.4f}"/>'
+        vtx = "".join(f'<vertex x="{x:.{precision}f}" y="{y:.{precision}f}" z="{z:.{precision}f}"/>'
                       for x, y, z in sub_v)
         tri = "".join(f'<triangle v1="{a}" v2="{b}" v3="{c}"/>'
                       for a, b, c in sub_f)
